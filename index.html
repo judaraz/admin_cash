@@ -5,69 +5,140 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CashReward Admin Panel</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        body { font-family: 'Poppins', sans-serif; background-color: #f1f5f9; }
-        .admin-page { display: none; }
-        .admin-page.active { display: block; animation: fadeIn 0.5s; }
-        .sidebar-link { transition: all 0.2s; }
-        .sidebar-link.active, .sidebar-link:hover { background-color: #f97316; color: white; }
-        .stat-card { background: white; border-radius: 0.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .input-field { border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; border-radius: 0.375rem; width: 100%; }
-        .btn-primary { background-color: #f97316; color: white; padding: 0.5rem 1rem; border-radius: 0.375rem; font-weight: 600; }
-        .btn-secondary { background-color: #64748b; color: white; }
-        .btn-danger { background-color: #dc2626; color: white; }
-        #toast-notification { transition: opacity 0.5s ease-in-out; }
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .sidebar { background-color: #1f2937; color: #d1d5db; }
+        .sidebar a { border-left: 3px solid transparent; transition: all 0.2s; }
+        .sidebar a:hover { background-color: #374151; }
+        .sidebar a.active { background-color: #4f46e5; color: white; border-left-color: #818cf8; }
+        .stat-card { background-color: white; border-radius: 0.5rem; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06); }
+        .page { display: none; }
+        .page.active { display: block; animation: fadeIn 0.5s; }
+        .btn { padding: 0.5rem 1rem; border-radius: 0.375rem; font-weight: 600; transition: all 0.2s; }
+        .btn:active { transform: scale(0.95); }
+        .btn-primary { background-color: #4f46e5; color: white; }
+        .btn-primary:hover { background-color: #4338ca; }
+        .btn-success { background-color: #10b981; color: white; }
+        .btn-danger { background-color: #ef4444; color: white; }
+        .btn-warning { background-color: #f59e0b; color: white; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid #e5e7eb; }
+        th { background-color: #f9fafb; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
 <body>
-    <!-- Loader -->
-    <div id="loader" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-orange-500"></div>
-    </div>
-    
-    <!-- Login Section -->
-    <div id="auth-section" class="min-h-screen flex items-center justify-center bg-gray-100">
-        <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-sm">
-            <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">Admin Panel Login</h2>
-            <input id="login-email" type="email" placeholder="Email" class="input-field mb-4">
-            <input id="login-password" type="password" placeholder="Password" class="input-field mb-4">
-            <button id="login-btn" class="btn-primary w-full">Login</button>
-            <p id="login-error" class="text-red-500 text-sm mt-2 text-center"></p>
+
+    <!-- Admin Login -->
+    <div id="admin-login-view" class="min-h-screen flex items-center justify-center bg-gray-100">
+        <div class="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
+            <h1 class="text-3xl font-bold text-center text-gray-900">Admin Panel Login</h1>
+            <input id="admin-email" type="email" placeholder="Admin Email" class="w-full px-4 py-2 border rounded-lg">
+            <input id="admin-password" type="password" placeholder="Password" class="w-full px-4 py-2 border rounded-lg">
+            <button id="admin-login-btn" class="w-full btn btn-primary">Login</button>
         </div>
     </div>
 
-    <!-- Main Admin Panel -->
-    <div id="panel-section" class="hidden">
-        <div class="flex h-screen bg-gray-100">
+    <!-- Main Admin Dashboard -->
+    <div id="admin-dashboard" class="hidden">
+        <div class="flex h-screen">
             <!-- Sidebar -->
-            <aside class="w-64 bg-gray-800 text-gray-200 flex-shrink-0">
+            <aside class="sidebar w-64 flex-shrink-0">
                 <div class="p-4 text-2xl font-bold text-white">CashReward</div>
-                <nav class="mt-6">
-                    <a href="#" data-page="dashboard" class="sidebar-link active flex items-center py-3 px-4"><i data-lucide="layout-dashboard" class="w-5 h-5 mr-3"></i>Dashboard</a>
-                    <a href="#" data-page="users" class="sidebar-link flex items-center py-3 px-4"><i data-lucide="users" class="w-5 h-5 mr-3"></i>Users</a>
-                    <a href="#" data-page="withdrawals" class="sidebar-link flex items-center py-3 px-4"><i data-lucide="banknote" class="w-5 h-5 mr-3"></i>Withdrawals</a>
-                    <a href="#" data-page="settings" class="sidebar-link flex items-center py-3 px-4"><i data-lucide="settings" class="w-5 h-5 mr-3"></i>App Settings</a>
+                <nav class="mt-8">
+                    <a href="#" class="nav-link block py-3 px-4" data-page="dashboard-page"><i data-lucide="home" class="inline-block w-5 h-5 mr-2"></i>Dashboard</a>
+                    <a href="#" class="nav-link block py-3 px-4" data-page="users-page"><i data-lucide="users" class="inline-block w-5 h-5 mr-2"></i>Users</a>
+                    <a href="#" class="nav-link block py-3 px-4" data-page="withdrawals-page"><i data-lucide="dollar-sign" class="inline-block w-5 h-5 mr-2"></i>Withdrawals</a>
+                    <a href="#" class="nav-link block py-3 px-4" data-page="notifications-page"><i data-lucide="send" class="inline-block w-5 h-5 mr-2"></i>Notifications</a>
+                    <a href="#" class="nav-link block py-3 px-4" data-page="settings-page"><i data-lucide="settings" class="inline-block w-5 h-5 mr-2"></i>Settings</a>
+                    <a href="#" id="admin-logout-btn" class="block py-3 px-4 mt-8"><i data-lucide="log-out" class="inline-block w-5 h-5 mr-2"></i>Logout</a>
                 </nav>
-                <div class="absolute bottom-0 w-64 p-4">
-                    <button id="logout-btn" class="w-full bg-red-600 text-white py-2 rounded-lg">Logout</button>
-                </div>
             </aside>
+
             <!-- Main Content -->
-            <main class="flex-1 p-6 overflow-y-auto">
-                <div id="dashboard" class="admin-page active"></div>
-                <div id="users" class="admin-page"></div>
-                <div id="withdrawals" class="admin-page"></div>
-                <div id="settings" class="admin-page"></div>
+            <main class="flex-1 p-8 overflow-y-auto">
+                <!-- Dashboard Page -->
+                <div id="dashboard-page" class="page">
+                    <h1 class="text-3xl font-bold mb-6">Dashboard</h1>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div class="stat-card p-6"><h2 class="text-gray-500 text-lg">Total Users</h2><p id="total-users" class="text-4xl font-bold mt-2">0</p></div>
+                        <div class="stat-card p-6"><h2 class="text-gray-500 text-lg">Pending Withdrawals</h2><p id="pending-withdrawals" class="text-4xl font-bold mt-2">0</p></div>
+                    </div>
+                </div>
+
+                <!-- Users Page -->
+                <div id="users-page" class="page">
+                    <h1 class="text-3xl font-bold mb-6">User Management</h1>
+                    <div class="bg-white shadow rounded-lg overflow-x-auto">
+                        <table class="min-w-full">
+                            <thead><tr><th>Name</th><th>Email</th><th>Balance</th><th>Status</th><th>Actions</th></tr></thead>
+                            <tbody id="users-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Withdrawals Page -->
+                <div id="withdrawals-page" class="page">
+                    <h1 class="text-3xl font-bold mb-6">Withdrawal Requests</h1>
+                     <div class="bg-white shadow rounded-lg overflow-x-auto">
+                        <table>
+                            <thead><tr><th>User Name</th><th>Amount</th><th>Method</th><th>Details</th><th>Requested At</th><th>Actions</th></tr></thead>
+                            <tbody id="withdrawals-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Notifications Page -->
+                <div id="notifications-page" class="page">
+                    <h1 class="text-3xl font-bold mb-6">Send Notification</h1>
+                    <div class="stat-card p-6 max-w-lg">
+                        <div class="mb-4"><label for="notification-title" class="block font-semibold mb-2">Title</label><input type="text" id="notification-title" class="w-full px-4 py-2 border rounded-lg"></div>
+                        <div class="mb-6"><label for="notification-message" class="block font-semibold mb-2">Message</label><textarea id="notification-message" rows="4" class="w-full px-4 py-2 border rounded-lg"></textarea></div>
+                        <button id="send-notification-btn" class="btn btn-primary">Send to All Users</button>
+                    </div>
+                </div>
+
+                <!-- Settings Page -->
+                <div id="settings-page" class="page">
+                    <h1 class="text-3xl font-bold mb-6">App Settings</h1>
+                    <div class="stat-card p-6 max-w-lg">
+                        <div class="mb-6"><label for="min-withdrawal" class="block font-semibold mb-2">Minimum Withdrawal (Coins)</label><input type="number" id="min-withdrawal" class="w-full px-4 py-2 border rounded-lg"></div>
+                        <div class="mb-6"><label for="daily-ad-limit" class="block font-semibold mb-2">Daily Ad Watch Limit</label><input type="number" id="daily-ad-limit" class="w-full px-4 py-2 border rounded-lg"></div>
+                        <div class="mb-6">
+                            <label class="block font-semibold mb-2">Coin Value</label>
+                            <div class="flex items-center space-x-2">
+                                <input type="number" id="coin-value-coins" class="w-full px-4 py-2 border rounded-lg">
+                                <span>Coins = â‚¹</span>
+                                <input type="number" id="coin-value-inr" class="w-full px-4 py-2 border rounded-lg">
+                            </div>
+                        </div>
+                        <div class="mb-6"><label class="block font-semibold mb-2">Payment Methods (comma-separated)</label><input type="text" id="payment-methods" class="w-full px-4 py-2 border rounded-lg" placeholder="e.g. UPI,Paytm"></div>
+                        <button id="save-settings-btn" class="btn btn-primary">Save Settings</button>
+                    </div>
+                </div>
             </main>
         </div>
     </div>
+    
+    <!-- Alert Modal -->
+    <div id="custom-alert" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-lg p-6 w-full max-w-sm text-center shadow-xl">
+            <p id="alert-message" class="mb-4 text-gray-800"></p>
+            <button id="alert-ok-btn" class="btn btn-primary px-6">OK</button>
+        </div>
+    </div>
 
-    <!-- Toast Notification -->
-    <div id="toast-notification" class="hidden fixed top-5 right-5 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg opacity-0">
-        <p id="toast-message"></p>
+    <!-- Confirmation Modal -->
+    <div id="custom-confirm" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-lg p-6 w-full max-w-sm text-center shadow-xl">
+            <p id="confirm-message" class="mb-6 text-gray-800"></p>
+            <div class="flex justify-center space-x-4">
+                <button id="confirm-cancel-btn" class="btn bg-gray-200 text-gray-800 px-6">Cancel</button>
+                <button id="confirm-ok-btn" class="btn btn-danger px-6">Confirm</button>
+            </div>
+        </div>
     </div>
 
     <script type="module">
@@ -81,326 +152,212 @@
         };
         
         const ADMIN_UIDS = ["pPICivnJ7ZafIfDeuhilCyg6kO22"];
-        
+
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, updateDoc, collection, getDocs, writeBatch, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+        import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, query, where, onSnapshot, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        enableIndexedDbPersistence(db).catch((err) => {
-            if (err.code == 'failed-precondition') {
-                console.warn('Firestore persistence failed: multiple tabs open.');
-            } else if (err.code == 'unimplemented') {
-                console.warn('Firestore persistence not available in this browser.');
-            }
-        });
-
-        const loader = document.getElementById('loader');
+        const loginView = document.getElementById('admin-login-view');
+        const dashboardView = document.getElementById('admin-dashboard');
 
         window.onload = () => {
             lucide.createIcons();
             setupEventListeners();
-            onAuthStateChanged(auth, handleAuthStateChange);
+            onAuthStateChanged(auth, (user) => {
+                if (user && ADMIN_UIDS.includes(user.uid)) {
+                    loginView.style.display = 'none';
+                    dashboardView.style.display = 'block';
+                    navigateTo('dashboard-page');
+                    loadDashboardData();
+                    loadUsers();
+                    loadWithdrawals();
+                    loadSettings();
+                } else {
+                    loginView.style.display = 'flex';
+                    dashboardView.style.display = 'none';
+                }
+            });
         };
 
-        function handleAuthStateChange(user) {
-            if (user) {
-                document.getElementById('auth-section').style.display = 'none';
-                document.getElementById('panel-section').style.display = 'block';
-                navigateTo('dashboard');
-            } else {
-                document.getElementById('auth-section').style.display = 'flex';
-                document.getElementById('panel-section').style.display = 'none';
-            }
+        function navigateTo(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+                if (link.dataset.page === pageId) link.classList.add('active');
+            });
         }
 
         function setupEventListeners() {
-            document.getElementById('login-btn').addEventListener('click', handleLogin);
-            document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
-            document.querySelectorAll('.sidebar-link').forEach(link => {
-                link.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    navigateTo(link.dataset.page);
-                });
-            });
-        }
-        
-        async function handleLogin() {
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-password').value;
-            const errorEl = document.getElementById('login-error');
-            errorEl.textContent = '';
-            loader.style.display = 'flex';
-            try {
-                await signInWithEmailAndPassword(auth, email, password);
-            } catch (error) {
-                errorEl.textContent = "Invalid email or password.";
-            } finally {
-                loader.style.display = 'none';
-            }
-        }
-        
-        function navigateTo(pageId) {
-            document.querySelectorAll('.admin-page').forEach(p => p.classList.remove('active'));
-            document.getElementById(pageId).classList.add('active');
-            document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
-            document.querySelector(`.sidebar-link[data-page="${pageId}"]`).classList.add('active');
-
-            if (pageId === 'dashboard') loadDashboard();
-            if (pageId === 'users') loadUsers();
-            if (pageId === 'withdrawals') loadWithdrawals();
-            if (pageId === 'settings') loadSettings();
-        }
-
-        async function loadDashboard() {
-            const page = document.getElementById('dashboard');
-            page.innerHTML = `<h1 class="text-3xl font-bold mb-6">Dashboard</h1><div id="stats-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6">Loading...</div>`;
-            const usersSnap = await getDocs(collection(db, "users"));
-            const withdrawalsSnap = await getDocs(collection(db, "withdrawals"));
-            const pendingWithdrawals = withdrawalsSnap.docs.filter(d => d.data().status === 'pending').length;
-            document.getElementById('stats-grid').innerHTML = `
-                <div class="stat-card p-6"><h3 class="text-gray-500">Total Users</h3><p class="text-3xl font-bold">${usersSnap.size}</p></div>
-                <div class="stat-card p-6"><h3 class="text-gray-500">Total Withdrawals</h3><p class="text-3xl font-bold">${withdrawalsSnap.size}</p></div>
-                <div class="stat-card p-6"><h3 class="text-gray-500">Pending Withdrawals</h3><p class="text-3xl font-bold text-orange-500">${pendingWithdrawals}</p></div>
-            `;
-        }
-
-        async function loadUsers() {
-            const page = document.getElementById('users');
-            page.innerHTML = `<h1 class="text-3xl font-bold mb-6">Users</h1><div class="bg-white shadow rounded-lg p-4"><div class="overflow-x-auto">Loading...</div></div>`;
-            const usersSnap = await getDocs(collection(db, "users"));
-            let tableHTML = `<table class="w-full text-sm text-left text-gray-600 table-fixed">
-                <thead class="text-xs text-gray-700 uppercase bg-gray-50"><tr>
-                    <th class="px-6 py-3 w-1/3">Name</th><th class="px-6 py-3 w-1/3">Email</th><th class="px-6 py-3 w-1/6">Balance</th><th class="px-6 py-3 w-1/6">Actions</th>
-                </tr></thead><tbody>`;
-            usersSnap.forEach(doc => {
-                const user = doc.data();
-                tableHTML += `<tr class="bg-white border-b">
-                    <td class="px-6 py-4 truncate">${user.name}</td>
-                    <td class="px-6 py-4 truncate">${user.email}</td>
-                    <td class="px-6 py-4 font-semibold">${user.balance || 0}</td>
-                    <td class="px-6 py-4">
-                        <button data-uid="${user.uid}" data-blocked="${user.isBlocked || false}" class="block-btn ${user.isBlocked ? 'btn-secondary' : 'btn-danger'} text-xs px-2 py-1 rounded w-full">${user.isBlocked ? 'Unblock' : 'Block'}</button>
-                    </td>
-                </tr>`;
-            });
-            tableHTML += `</tbody></table>`;
-            page.querySelector('.overflow-x-auto').innerHTML = tableHTML;
-            document.querySelectorAll('.block-btn').forEach(btn => btn.addEventListener('click', toggleUserBlock));
-        }
-
-        async function toggleUserBlock(e) {
-            const { uid, blocked } = e.target.dataset;
-            const isBlocked = blocked === 'true';
-            loader.style.display = 'flex';
-            await updateDoc(doc(db, "users", uid), { isBlocked: !isBlocked });
-            loader.style.display = 'none';
-            showToast(`User ${!isBlocked ? 'blocked' : 'unblocked'} successfully!`);
-            loadUsers();
-        }
-
-        async function loadWithdrawals() {
-            const page = document.getElementById('withdrawals');
-            page.innerHTML = `<h1 class="text-3xl font-bold mb-6">Withdrawal Requests</h1><div class="bg-white shadow rounded-lg p-4"><div class="overflow-x-auto">Loading...</div></div>`;
-            const withdrawalsSnap = await getDocs(collection(db, "withdrawals"));
-            const pending = withdrawalsSnap.docs.filter(d => d.data().status === 'pending');
-
-            if(pending.length === 0) {
-                 page.querySelector('.overflow-x-auto').innerHTML = `<p class="text-center p-4">No pending requests.</p>`;
-                 return;
-            }
-
-            let tableHTML = `<table class="w-full text-sm text-left text-gray-600 table-fixed">
-                <thead class="text-xs text-gray-700 uppercase bg-gray-50"><tr>
-                    <th class="px-6 py-3 w-1/4">User</th><th class="px-6 py-3 w-1/6">Amount</th><th class="px-6 py-3 w-1/6">Method</th><th class="px-6 py-3 w-1/4">Details</th><th class="px-6 py-3 w-auto">Actions</th>
-                </tr></thead><tbody>`;
-            pending.forEach(doc => {
-                const req = doc.data();
-                tableHTML += `<tr class="bg-white border-b">
-                    <td class="px-6 py-4 truncate">${req.userName}</td>
-                    <td class="px-6 py-4 font-semibold">${req.amount}</td>
-                    <td class="px-6 py-4">${req.method}</td>
-                    <td class="px-6 py-4 truncate">${req.paymentDetail}</td>
-                    <td class="px-6 py-4 flex flex-nowrap gap-2">
-                        <button data-docid="${doc.id}" class="process-btn bg-green-500 text-white text-xs px-2 py-1 rounded" data-action="approved">Approve</button>
-                        <button data-docid="${doc.id}" data-uid="${req.userId}" data-amount="${req.amount}" class="process-btn btn-danger text-xs px-2 py-1 rounded" data-action="rejected">Reject</button>
-                    </td>
-                </tr>`;
-            });
-            tableHTML += `</tbody></table>`;
-            page.querySelector('.overflow-x-auto').innerHTML = tableHTML;
-            document.querySelectorAll('.process-btn').forEach(btn => btn.addEventListener('click', processWithdrawal));
-        }
-        
-        async function processWithdrawal(e) {
-            const { docid, action, uid, amount } = e.target.dataset;
-            if (!docid || !action) return;
-            
-            loader.style.display = 'flex';
-            const batch = writeBatch(db);
-            const withdrawalRef = doc(db, "withdrawals", docid);
-            batch.update(withdrawalRef, { status: action });
-
-            if (action === 'rejected' && uid && amount) {
-                const userRef = doc(db, "users", uid);
-                try {
-                    const userSnap = await getDoc(userRef);
-                    if (userSnap.exists()) {
-                        const currentBalance = userSnap.data().balance || 0;
-                        batch.update(userRef, { balance: currentBalance + parseInt(amount) });
-                    } else {
-                        console.error(`User with UID ${uid} not found. Cannot refund coins.`);
-                        showToast(`Warning: User ${uid} not found, could not refund coins.`, true);
-                    }
-                } catch (error) {
-                    console.error("Error fetching user for refund:", error);
-                }
-            }
-            await batch.commit();
-            loader.style.display = 'none';
-            showToast(`Withdrawal request has been ${action}.`);
-            loadWithdrawals();
-        }
-        
-        async function loadSettings() {
-            const page = document.getElementById('settings');
-            page.innerHTML = `<h1 class="text-3xl font-bold mb-6">App Settings</h1><div>Loading...</div>`;
-            const configSnap = await getDoc(doc(db, "config", "main"));
-            const config = configSnap.data() || {};
-            renderSettings(config);
-        }
-
-        function renderSettings(config) {
-             const page = document.getElementById('settings');
-             page.innerHTML = `
-                <h1 class="text-3xl font-bold mb-6">App Settings</h1>
-                <div class="space-y-8">
-                    <div class="bg-white p-6 rounded-lg shadow"><h2 class="text-xl font-bold mb-4">General & Payment</h2><div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div><label class="font-semibold">Min Withdrawal</label><input type="number" id="minWithdrawal" class="input-field" value="${config.minWithdrawal || 0}"></div>
-                        <div><label class="font-semibold">Ad Watch Reward</label><input type="number" id="adWatchReward" class="input-field" value="${config.adWatchReward || 0}"></div>
-                        <div><label class="font-semibold">Color Game Reward</label><input type="number" id="colorGameReward" class="input-field" value="${config.colorGameReward || 0}"></div>
-                        <div><label class="font-semibold">Payment Methods (comma separated)</label><input type="text" id="paymentMethods" class="input-field" value="${(config.paymentMethods || []).join(',')}"></div>
-                    </div></div>
-                    <div class="bg-white p-6 rounded-lg shadow"><h2 class="text-xl font-bold mb-4">Special Ad Click Task</h2><div class="grid grid-cols-1 md:grid-cols-3 gap-4"><div><label class="font-semibold">Show after # Ads</label><input type="number" id="watchAdSpecialTaskCount" class="input-field" value="${config.watchAdSpecialTaskCount || 0}"></div><div><label class="font-semibold">Task Reward</label><input type="number" id="watchAdSpecialTaskReward" class="input-field" value="${config.watchAdSpecialTaskReward || 0}"></div><div><label class="font-semibold">Wait Timer (seconds)</label><input type="number" id="watchAdSpecialTaskTimer" class="input-field" value="${config.watchAdSpecialTaskTimer || 0}"></div></div></div>
-                    <div class="bg-white p-6 rounded-lg shadow"><h2 class="text-xl font-bold mb-4">Referral System</h2><div><label class="font-semibold">Referral Bonus</label><input type="number" id="referralBonus" class="input-field mb-4" value="${config.referralBonus || 0}"></div><div><label class="font-semibold">Referral Rules (one per line)</label><textarea id="referralRules" class="input-field h-24 mb-4">${(config.referralRules || []).join('\n')}</textarea></div><div><label class="font-semibold">Share Text ({CODE} & {APP_LINK})</label><textarea id="referralShareText" class="input-field h-24">${config.referralShareText || ''}</textarea></div></div>
-                    <div id="dynamic-lists"></div>
-                </div>
-                <button id="save-settings-btn" class="btn-primary mt-8 px-8 py-3">Save All Settings</button>
-            `;
-            
-            renderListEditor('sliderBanners', config.sliderBanners, ['img', 'link']);
-            renderListEditor('websitesToVisit', config.websitesToVisit, ['name', 'link', 'reward', 'timer']);
-            renderListEditor('socialTasks', config.socialTasks, ['name', 'link', 'icon', 'reward']);
-            
+            document.getElementById('admin-login-btn').addEventListener('click', handleAdminLogin);
+            document.getElementById('admin-logout-btn').addEventListener('click', () => signOut(auth));
             document.getElementById('save-settings-btn').addEventListener('click', saveSettings);
-        }
-
-        function renderListEditor(key, items, fields) {
-            const container = document.getElementById('dynamic-lists');
-            let listHTML = `<div class="bg-white p-6 rounded-lg shadow mb-8"><h2 class="text-xl font-bold mb-4 capitalize">${key.replace(/([A-Z])/g, ' $1')}</h2><div id="${key}-list" class="space-y-2">`;
-            (items || []).forEach((item, index) => {
-                listHTML += `<div class="flex gap-2 items-center border p-2 rounded">`;
-                fields.forEach(field => {
-                    let placeholder = field;
-                    if (key === 'socialTasks' && field === 'icon') {
-                        placeholder = 'icon name or image URL';
-                    }
-                    listHTML += `<input type="text" class="input-field text-sm" placeholder="${placeholder}" data-key="${key}" data-index="${index}" data-field="${field}" value="${item[field] || ''}">`;
-                });
-                listHTML += `<button class="remove-item-btn text-red-500 font-bold text-xl p-1" data-key="${key}" data-index="${index}">&times;</button></div>`;
-            });
-            listHTML += `</div><button class="add-item-btn mt-4 text-sm btn-primary" data-key="${key}">+ Add New</button></div>`;
-            container.innerHTML += listHTML;
-
-            document.querySelectorAll('.add-item-btn, .remove-item-btn').forEach(btn => {
-                btn.removeEventListener('click', handleListEdit);
-                btn.addEventListener('click', handleListEdit);
+            document.getElementById('send-notification-btn').addEventListener('click', sendNotification);
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', (e) => { e.preventDefault(); navigateTo(link.dataset.page); });
             });
         }
-        
-        function handleListEdit(e) {
-            const newConfig = getSettingsFromUI();
-            const { key, index } = e.target.dataset;
-            
-            if (e.target.classList.contains('add-item-btn')) {
-                if(!newConfig[key]) newConfig[key] = [];
-                newConfig[key].push({});
-            } else {
-                newConfig[key].splice(index, 1);
-            }
-            renderSettings(newConfig);
-        }
 
-        function getSettingsFromUI() {
-            const newConfig = {};
-            ['minWithdrawal', 'adWatchReward', 'colorGameReward', 'watchAdSpecialTaskCount', 'watchAdSpecialTaskReward', 'watchAdSpecialTaskTimer', 'referralBonus'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) newConfig[id] = parseInt(el.value);
-            });
-            
-            newConfig.paymentMethods = document.getElementById('paymentMethods').value.split(',').map(s => s.trim());
-            newConfig.referralRules = document.getElementById('referralRules').value.split('\n').map(s => s.trim());
-            newConfig.referralShareText = document.getElementById('referralShareText').value;
-
-            ['sliderBanners', 'websitesToVisit', 'socialTasks'].forEach(key => {
-                const listContainer = document.getElementById(`${key}-list`);
-                if (!listContainer) return;
-                newConfig[key] = [];
-                const items = listContainer.children;
-                for (let i = 0; i < items.length; i++) {
-                    const inputs = items[i].querySelectorAll('input');
-                    const newItem = {};
-                    inputs.forEach(input => {
-                        const value = input.value;
-                        const numericFields = ['reward', 'timer'];
-                        if (numericFields.includes(input.dataset.field) && !isNaN(value) && value.trim() !== '') {
-                            newItem[input.dataset.field] = parseInt(value);
-                        } else {
-                            newItem[input.dataset.field] = value;
-                        }
-                    });
-                    newConfig[key].push(newItem);
+        async function handleAdminLogin() {
+            const email = document.getElementById('admin-email').value;
+            const password = document.getElementById('admin-password').value;
+            try {
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                if (!ADMIN_UIDS.includes(userCredential.user.uid)) {
+                    await signOut(auth);
+                    showAlert("Aap is panel ko access karne ke liye authorized nahi hain.");
                 }
+            } catch (error) { showAlert(error.message); }
+        }
+
+        function loadDashboardData() {
+            onSnapshot(collection(db, "users"), snap => { document.getElementById('total-users').textContent = snap.size; });
+            onSnapshot(query(collection(db, "withdrawals"), where("status", "==", "pending")), snap => { document.getElementById('pending-withdrawals').textContent = snap.size; });
+        }
+
+        function loadUsers() {
+            const usersTableBody = document.getElementById('users-table-body');
+            onSnapshot(collection(db, "users"), (snapshot) => {
+                usersTableBody.innerHTML = '';
+                snapshot.forEach(doc => {
+                    const user = doc.data();
+                    const isBlocked = user.isBlocked || false;
+                    const row = `<tr>
+                        <td>${user.name || 'N/A'}</td><td>${user.email}</td><td>${user.balance || 0}</td>
+                        <td><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${isBlocked ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}">${isBlocked ? 'Blocked' : 'Active'}</span></td>
+                        <td><button class="btn text-xs ${isBlocked ? 'btn-success' : 'btn-danger'}" onclick="window.toggleBlockUser('${doc.id}', ${isBlocked})">${isBlocked ? 'Unblock' : 'Block'}</button></td>
+                    </tr>`;
+                    usersTableBody.innerHTML += row;
+                });
             });
-            return newConfig;
+        }
+
+        function loadWithdrawals() {
+            const withdrawalsTableBody = document.getElementById('withdrawals-table-body');
+            onSnapshot(query(collection(db, "withdrawals"), where("status", "==", "pending")), (snapshot) => {
+                withdrawalsTableBody.innerHTML = '';
+                snapshot.forEach(docSnap => {
+                    const request = docSnap.data();
+                    const requestedDate = request.requestedAt?.toDate().toLocaleString() || 'N/A';
+                    const row = `<tr>
+                        <td>${request.userName || 'N/A'}</td><td>${request.amount}</td><td>${request.method}</td>
+                        <td>${request.paymentDetail || 'N/A'}</td><td>${requestedDate}</td>
+                        <td class="space-x-2">
+                            <button class="btn btn-success text-xs" onclick="window.handleWithdrawal('${docSnap.id}', 'approved')">Approve</button>
+                            <button class="btn btn-danger text-xs" onclick="window.handleWithdrawal('${docSnap.id}', 'rejected')">Reject</button>
+                        </td>
+                    </tr>`;
+                    withdrawalsTableBody.innerHTML += row;
+                });
+            });
+        }
+
+        async function loadSettings() {
+            const configRef = doc(db, "config", "main");
+            const docSnap = await getDoc(configRef);
+            if (docSnap.exists()) {
+                const config = docSnap.data();
+                document.getElementById('min-withdrawal').value = config.minWithdrawal || '';
+                document.getElementById('daily-ad-limit').value = config.dailyAdLimit || '';
+                document.getElementById('coin-value-coins').value = config.coinValueCoins || '';
+                document.getElementById('coin-value-inr').value = config.coinValueInr || '';
+                document.getElementById('payment-methods').value = (config.paymentMethods || []).join(',');
+            }
+        }
+
+        window.toggleBlockUser = (userId, isBlocked) => {
+            const action = isBlocked ? 'unblock' : 'block';
+            showConfirm(`Kya aap is user ko ${action} karna chahte hain?`, async () => {
+                const userRef = doc(db, "users", userId);
+                try {
+                    await updateDoc(userRef, { isBlocked: !isBlocked });
+                    showAlert(`User safaltapoorvak ${action}ed ho gaya hai.`);
+                } catch (error) { showAlert(`Error: ${error.message}`); }
+            });
+        };
+
+        window.handleWithdrawal = (requestId, newStatus) => {
+            showConfirm(`Kya aap is request ko ${newStatus} karna chahte hain?`, async () => {
+                const requestRef = doc(db, "withdrawals", requestId);
+                try {
+                    if (newStatus === 'rejected') {
+                        const requestSnap = await getDoc(requestRef);
+                        if (requestSnap.exists()) {
+                            const requestData = requestSnap.data();
+                            const userRef = doc(db, "users", requestData.userId);
+                            const userSnap = await getDoc(userRef);
+                            if(userSnap.exists()){
+                               const currentBalance = userSnap.data().balance || 0;
+                               await updateDoc(userRef, { balance: currentBalance + requestData.amount });
+                            }
+                        }
+                    }
+                    await updateDoc(requestRef, { status: newStatus });
+                    showAlert(`Request ${newStatus} ho gayi hai.`);
+                } catch (error) { showAlert(`Error: ${error.message}`); }
+            });
+        };
+
+        async function sendNotification() {
+            const title = document.getElementById('notification-title').value;
+            const message = document.getElementById('notification-message').value;
+            if (!title || !message) return showAlert("Title aur message dono zaroori hain.");
+            try {
+                await addDoc(collection(db, "notifications"), { title, message, createdAt: serverTimestamp() });
+                showAlert("Notification sabhi users ko bhej di gayi hai!");
+                document.getElementById('notification-title').value = '';
+                document.getElementById('notification-message').value = '';
+            } catch (error) { showAlert(`Error: ${error.message}`); }
         }
 
         async function saveSettings() {
-            const newConfig = getSettingsFromUI();
-            loader.style.display = 'flex';
+            const minWithdrawal = parseInt(document.getElementById('min-withdrawal').value);
+            const dailyAdLimit = parseInt(document.getElementById('daily-ad-limit').value);
+            const coinValueCoins = parseInt(document.getElementById('coin-value-coins').value);
+            const coinValueInr = parseInt(document.getElementById('coin-value-inr').value);
+            const paymentMethods = document.getElementById('payment-methods').value.split(',').map(s => s.trim()).filter(Boolean);
+            if (isNaN(minWithdrawal) || isNaN(dailyAdLimit) || isNaN(coinValueCoins) || isNaN(coinValueInr)) return showAlert("Kripya sabhi number fields mein valid number daalein.");
             try {
-                await updateDoc(doc(db, "config", "main"), newConfig);
-                showToast('Settings saved successfully!');
-            } catch (error) {
-                showToast('Error: Could not save settings.', true);
-                console.error("Error saving settings:", error);
-            } finally {
-                loader.style.display = 'none';
-            }
+                await setDoc(doc(db, "config", "main"), { minWithdrawal, dailyAdLimit, coinValueCoins, coinValueInr, paymentMethods }, { merge: true });
+                showAlert("Settings safaltapoorvak save ho gayi hain!");
+            } catch (error) { showAlert(`Settings save karne mein error: ${error.message}`); }
         }
         
-        function showToast(message, isError = false) {
-            const toast = document.getElementById('toast-notification');
-            const toastMessage = document.getElementById('toast-message');
-            if(!toast || !toastMessage) return;
-
-            toastMessage.textContent = message;
-            toast.className = `fixed top-5 right-5 text-white px-6 py-3 rounded-lg shadow-lg opacity-0 ${isError ? 'bg-red-600' : 'bg-green-600'}`;
-            
-            toast.classList.remove('hidden');
-            setTimeout(() => toast.classList.remove('opacity-0'), 50);
-
-            setTimeout(() => {
-                toast.classList.add('opacity-0');
-                setTimeout(() => {
-                    toast.classList.add('hidden');
-                }, 500);
-            }, 3000);
+        function showAlert(message) {
+            document.getElementById('alert-message').textContent = message;
+            document.getElementById('custom-alert').classList.remove('hidden');
+            document.getElementById('alert-ok-btn').onclick = () => { document.getElementById('custom-alert').classList.add('hidden'); };
         }
-        
+
+        function showConfirm(message, onConfirm) {
+            const confirmModal = document.getElementById('custom-confirm');
+            const confirmMessage = document.getElementById('confirm-message');
+            const confirmOkBtn = document.getElementById('confirm-ok-btn');
+            const confirmCancelBtn = document.getElementById('confirm-cancel-btn');
+
+            confirmMessage.textContent = message;
+            confirmModal.classList.remove('hidden');
+
+            const okListener = () => {
+                onConfirm();
+                confirmModal.classList.add('hidden');
+                confirmOkBtn.removeEventListener('click', okListener);
+                confirmCancelBtn.removeEventListener('click', cancelListener);
+            };
+
+            const cancelListener = () => {
+                confirmModal.classList.add('hidden');
+                confirmOkBtn.removeEventListener('click', okListener);
+                confirmCancelBtn.removeEventListener('click', cancelListener);
+            };
+
+            confirmOkBtn.addEventListener('click', okListener);
+            confirmCancelBtn.addEventListener('click', cancelListener);
+        }
     </script>
 </body>
 </html>

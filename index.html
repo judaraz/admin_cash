@@ -15,19 +15,29 @@
         .sidebar-link.active, .sidebar-link:hover { background-color: #4f46e5; color: white; border-left-color: #818cf8; }
         .stat-card { background: white; border-radius: 0.5rem; box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px 0 rgba(0,0,0,0.06); }
         .input-field { border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; border-radius: 0.375rem; width: 100%; }
-        .btn { padding: 0.5rem 1rem; border-radius: 0.375rem; font-weight: 600; transition: all 0.2s; }
+        .btn { padding: 0.5rem 1rem; border-radius: 0.375rem; font-weight: 600; transition: all 0.2s; cursor: pointer; }
         .btn:active { transform: scale(0.95); }
-        .btn-primary { background-color: #4f46e5; color: white; }
+        .btn-primary { background-color: #4f46e5; color: white; border: none; }
         .btn-primary:hover { background-color: #4338ca; }
-        .btn-secondary { background-color: #64748b; color: white; }
-        .btn-danger { background-color: #ef4444; color: white; }
-        .btn-success { background-color: #10b981; color: white; }
-        .btn-warning { background-color: #f59e0b; color: white; }
+        .btn-secondary { background-color: #64748b; color: white; border: none; }
+        .btn-danger { background-color: #ef4444; color: white; border: none; }
+        .btn-success { background-color: #10b981; color: white; border: none; }
+        .btn-warning { background-color: #f59e0b; color: white; border: none; }
+        .btn-sm { padding: 0.25rem 0.5rem; font-size: 0.875rem; }
         #toast-notification { transition: opacity 0.5s ease-in-out; }
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid #e5e7eb; }
-        th { background-color: #f9fafb; }
+        th { background-color: #f9fafb; font-weight: 600; }
+        .status-badge { padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
+        .status-active { background-color: #d1fae5; color: #065f46; }
+        .status-blocked { background-color: #fee2e2; color: #991b1b; }
+        .status-pending { background-color: #fef3c7; color: #92400e; }
+        .status-approved { background-color: #d1fae5; color: #065f46; }
+        .status-rejected { background-color: #fee2e2; color: #991b1b; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; }
+        .modal { background: white; border-radius: 0.5rem; max-width: 500px; margin: 2rem auto; padding: 1.5rem; max-height: 80vh; overflow-y: auto; }
+        .point-input { width: 100px; text-align: center; }
     </style>
 </head>
 <body>
@@ -63,6 +73,9 @@
                     <a href="#" data-page="withdrawals" class="sidebar-link flex items-center py-3 px-4">
                         <i data-lucide="banknote" class="w-5 h-5 mr-3"></i>Withdrawals
                     </a>
+                    <a href="#" data-page="point-history" class="sidebar-link flex items-center py-3 px-4">
+                        <i data-lucide="history" class="w-5 h-5 mr-3"></i>Point History
+                    </a>
                     <a href="#" data-page="notifications" class="sidebar-link flex items-center py-3 px-4">
                         <i data-lucide="send" class="w-5 h-5 mr-3"></i>Notifications
                     </a>
@@ -80,6 +93,7 @@
                 <div id="dashboard" class="admin-page active"></div>
                 <div id="users" class="admin-page"></div>
                 <div id="withdrawals" class="admin-page"></div>
+                <div id="point-history" class="admin-page"></div>
                 <div id="notifications" class="admin-page"></div>
                 <div id="settings" class="admin-page"></div>
             </main>
@@ -110,6 +124,31 @@
         </div>
     </div>
 
+    <!-- Edit User Points Modal -->
+    <div id="edit-points-modal" class="modal-overlay">
+        <div class="modal">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold">Edit User Points</h3>
+                <button onclick="closeEditPointsModal()" class="text-gray-500 hover:text-gray-700">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="mb-4">
+                <p class="text-gray-600">User: <span id="edit-user-name" class="font-semibold"></span></p>
+                <p class="text-gray-600">Email: <span id="edit-user-email" class="font-semibold"></span></p>
+                <p class="text-gray-600">Current Balance: <span id="edit-current-balance" class="font-semibold"></span></p>
+            </div>
+            <div class="mb-6">
+                <label class="block font-semibold mb-2">New Balance</label>
+                <input type="number" id="new-balance-input" class="input-field" placeholder="Enter new balance">
+            </div>
+            <div class="flex justify-end space-x-2">
+                <button onclick="closeEditPointsModal()" class="btn bg-gray-200 text-gray-800">Cancel</button>
+                <button onclick="saveUserPoints()" class="btn btn-primary">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
         // Firebase Configuration
         const firebaseConfig = {
@@ -126,7 +165,24 @@
         // Firebase Imports
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, updateDoc, collection, getDocs, writeBatch, enableIndexedDbPersistence, query, where, onSnapshot, addDoc, serverTimestamp, setDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+        import { 
+            getFirestore, 
+            doc, 
+            getDoc, 
+            updateDoc, 
+            collection, 
+            getDocs, 
+            writeBatch, 
+            enableIndexedDbPersistence, 
+            query, 
+            where, 
+            onSnapshot, 
+            addDoc, 
+            serverTimestamp, 
+            setDoc,
+            orderBy,
+            limit
+        } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
@@ -144,6 +200,7 @@
 
         // DOM Elements
         const loader = document.getElementById('loader');
+        let currentEditingUserId = null;
 
         // Initialize on load
         window.onload = () => {
@@ -228,6 +285,7 @@
             if (pageId === 'dashboard') loadDashboard();
             if (pageId === 'users') loadUsers();
             if (pageId === 'withdrawals') loadWithdrawals();
+            if (pageId === 'point-history') loadPointHistory();
             if (pageId === 'notifications') loadNotifications();
             if (pageId === 'settings') loadSettings();
         }
@@ -241,12 +299,20 @@
                     <div class="stat-card p-6"><h3 class="text-gray-500 text-lg">Total Users</h3><p id="total-users" class="text-4xl font-bold mt-2">0</p></div>
                     <div class="stat-card p-6"><h3 class="text-gray-500 text-lg">Total Withdrawals</h3><p id="total-withdrawals" class="text-4xl font-bold mt-2">0</p></div>
                     <div class="stat-card p-6"><h3 class="text-gray-500 text-lg">Pending Withdrawals</h3><p id="pending-withdrawals" class="text-4xl font-bold text-orange-500 mt-2">0</p></div>
-                    <div class="stat-card p-6"><h3 class="text-gray-500 text-lg">Today's Activity</h3><p id="today-activity" class="text-4xl font-bold mt-2">0</p></div>
+                    <div class="stat-card p-6"><h3 class="text-gray-500 text-lg">Today's Earnings</h3><p id="today-earnings" class="text-4xl font-bold text-green-600 mt-2">0</p></div>
                 </div>
-                <div class="mt-8">
-                    <h2 class="text-2xl font-bold mb-4">Recent Withdrawals</h2>
-                    <div id="recent-withdrawals" class="bg-white shadow rounded-lg p-4">
-                        Loading...
+                <div class="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div>
+                        <h2 class="text-2xl font-bold mb-4">Recent Withdrawals</h2>
+                        <div id="recent-withdrawals" class="bg-white shadow rounded-lg p-4">
+                            Loading...
+                        </div>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold mb-4">Recent Users</h2>
+                        <div id="recent-users" class="bg-white shadow rounded-lg p-4">
+                            Loading...
+                        </div>
                     </div>
                 </div>
             `;
@@ -271,38 +337,106 @@
                 document.getElementById('pending-withdrawals').textContent = snap.size;
             });
 
-            // Recent Withdrawals
+            // Load recent data
             loadRecentWithdrawals();
+            loadRecentUsers();
+            loadTodayEarnings();
         }
 
         async function loadRecentWithdrawals() {
-            const withdrawalsSnap = await getDocs(query(collection(db, "withdrawals"), where("status", "==", "approved")));
-            const recent = withdrawalsSnap.docs.slice(-5).reverse();
+            const withdrawalsSnap = await getDocs(query(
+                collection(db, "withdrawals"), 
+                orderBy("requestedAt", "desc"), 
+                limit(5)
+            ));
             
             let html = `<table class="w-full">
-                <thead><tr><th>User</th><th>Amount</th><th>Method</th><th>Date</th></tr></thead>
+                <thead><tr><th>User</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead>
                 <tbody>`;
             
-            recent.forEach(doc => {
-                const req = doc.data();
-                const date = req.requestedAt?.toDate().toLocaleString() || 'N/A';
-                html += `<tr class="border-b">
-                    <td class="py-2">${req.userName}</td>
-                    <td class="py-2 font-semibold">${req.amount}</td>
-                    <td class="py-2">${req.method}</td>
-                    <td class="py-2 text-gray-500 text-sm">${date}</td>
-                </tr>`;
-            });
+            if (withdrawalsSnap.empty) {
+                html += `<tr><td colspan="4" class="text-center py-4 text-gray-500">No recent withdrawals</td></tr>`;
+            } else {
+                withdrawalsSnap.forEach(doc => {
+                    const req = doc.data();
+                    const date = req.requestedAt?.toDate().toLocaleDateString() || 'N/A';
+                    const statusClass = req.status === 'approved' ? 'status-approved' : 
+                                      req.status === 'pending' ? 'status-pending' : 'status-rejected';
+                    html += `<tr class="border-b">
+                        <td class="py-2">${req.userName || 'N/A'}</td>
+                        <td class="py-2 font-semibold">${req.amount}</td>
+                        <td class="py-2"><span class="status-badge ${statusClass}">${req.status}</span></td>
+                        <td class="py-2 text-gray-500 text-sm">${date}</td>
+                    </tr>`;
+                });
+            }
             
             html += `</tbody></table>`;
             document.getElementById('recent-withdrawals').innerHTML = html;
+        }
+
+        async function loadRecentUsers() {
+            const usersSnap = await getDocs(query(
+                collection(db, "users"), 
+                orderBy("createdAt", "desc"), 
+                limit(5)
+            ));
+            
+            let html = `<table class="w-full">
+                <thead><tr><th>Name</th><th>Email</th><th>Balance</th><th>Status</th></tr></thead>
+                <tbody>`;
+            
+            if (usersSnap.empty) {
+                html += `<tr><td colspan="4" class="text-center py-4 text-gray-500">No users found</td></tr>`;
+            } else {
+                usersSnap.forEach(doc => {
+                    const user = doc.data();
+                    const isBlocked = user.isBlocked || false;
+                    const statusClass = isBlocked ? 'status-blocked' : 'status-active';
+                    html += `<tr class="border-b">
+                        <td class="py-2">${user.name || 'N/A'}</td>
+                        <td class="py-2">${user.email || 'N/A'}</td>
+                        <td class="py-2 font-semibold">${user.balance || 0}</td>
+                        <td class="py-2"><span class="status-badge ${statusClass}">${isBlocked ? 'Blocked' : 'Active'}</span></td>
+                    </tr>`;
+                });
+            }
+            
+            html += `</tbody></table>`;
+            document.getElementById('recent-users').innerHTML = html;
+        }
+
+        async function loadTodayEarnings() {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const pointHistorySnap = await getDocs(query(
+                collection(db, "pointHistory"),
+                where("timestamp", ">=", today)
+            ));
+            
+            let totalEarnings = 0;
+            pointHistorySnap.forEach(doc => {
+                const history = doc.data();
+                if (history.points > 0) {
+                    totalEarnings += history.points;
+                }
+            });
+            
+            document.getElementById('today-earnings').textContent = totalEarnings;
         }
 
         // Users Functions
         async function loadUsers() {
             const page = document.getElementById('users');
             page.innerHTML = `
-                <h1 class="text-3xl font-bold mb-6">User Management</h1>
+                <div class="flex justify-between items-center mb-6">
+                    <h1 class="text-3xl font-bold">User Management</h1>
+                    <div class="flex space-x-2">
+                        <input type="text" id="user-search" placeholder="Search users..." class="input-field w-64">
+                        <button onclick="searchUsers()" class="btn btn-primary">Search</button>
+                    </div>
+                </div>
                 <div class="bg-white shadow rounded-lg p-4">
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm text-left text-gray-600">
@@ -311,6 +445,8 @@
                                     <th class="px-6 py-3">Name</th>
                                     <th class="px-6 py-3">Email</th>
                                     <th class="px-6 py-3">Balance</th>
+                                    <th class="px-6 py-3">Country</th>
+                                    <th class="px-6 py-3">Daily Ads</th>
                                     <th class="px-6 py-3">Status</th>
                                     <th class="px-6 py-3">Actions</th>
                                 </tr>
@@ -321,29 +457,86 @@
                 </div>
             `;
             
+            await loadUsersData();
+            
+            // Add search event listener
+            document.getElementById('user-search').addEventListener('keyup', (e) => {
+                if (e.key === 'Enter') searchUsers();
+            });
+        }
+
+        async function loadUsersData(searchTerm = '') {
             const usersSnap = await getDocs(collection(db, "users"));
             let tableHTML = '';
+            
             usersSnap.forEach(doc => {
                 const user = doc.data();
+                const userId = doc.id;
                 const isBlocked = user.isBlocked || false;
-                tableHTML += `<tr class="bg-white border-b">
-                    <td class="px-6 py-4 truncate">${user.name || 'N/A'}</td>
-                    <td class="px-6 py-4 truncate">${user.email || 'N/A'}</td>
-                    <td class="px-6 py-4 font-semibold">${user.balance || 0}</td>
+                const userEmail = user.email || '';
+                const userName = user.name || 'N/A';
+                
+                // Filter by search term
+                if (searchTerm && 
+                    !userName.toLowerCase().includes(searchTerm.toLowerCase()) && 
+                    !userEmail.toLowerCase().includes(searchTerm.toLowerCase())) {
+                    return;
+                }
+                
+                const dailyAdsWatched = user.dailyAdsWatched || 0;
+                const dailyAdLimit = user.dailyAdLimit || 10;
+                const country = user.country || 'N/A';
+                
+                tableHTML += `<tr class="bg-white border-b hover:bg-gray-50">
+                    <td class="px-6 py-4">${userName}</td>
+                    <td class="px-6 py-4">${userEmail}</td>
                     <td class="px-6 py-4">
-                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${isBlocked ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}">
+                        <div class="flex items-center space-x-2">
+                            <span class="font-semibold">${user.balance || 0}</span>
+                            <button onclick="openEditPointsModal('${userId}', '${userName}', '${userEmail}', ${user.balance || 0})" 
+                                    class="btn btn-sm btn-warning">Edit</button>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">${country}</td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center space-x-2">
+                            <span class="font-semibold ${dailyAdsWatched >= dailyAdLimit ? 'text-red-600' : 'text-green-600'}">
+                                ${dailyAdsWatched}/${dailyAdLimit}
+                            </span>
+                            ${dailyAdsWatched >= dailyAdLimit ? 
+                                '<span class="text-xs text-red-500">Limit Reached</span>' : ''}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="status-badge ${isBlocked ? 'status-blocked' : 'status-active'}">
                             ${isBlocked ? 'Blocked' : 'Active'}
                         </span>
                     </td>
                     <td class="px-6 py-4">
-                        <button onclick="window.toggleUserBlock('${doc.id}', ${isBlocked})" class="btn text-xs ${isBlocked ? 'btn-success' : 'btn-danger'} px-2 py-1 rounded w-full">
-                            ${isBlocked ? 'Unblock' : 'Block'}
-                        </button>
+                        <div class="flex space-x-2">
+                            <button onclick="toggleUserBlock('${userId}', ${isBlocked})" 
+                                    class="btn btn-sm ${isBlocked ? 'btn-success' : 'btn-danger'}">
+                                ${isBlocked ? 'Unblock' : 'Block'}
+                            </button>
+                            <button onclick="resetDailyAds('${userId}')" 
+                                    class="btn btn-sm btn-secondary">
+                                Reset Ads
+                            </button>
+                        </div>
                     </td>
                 </tr>`;
             });
             
+            if (!tableHTML) {
+                tableHTML = `<tr><td colspan="7" class="text-center py-4 text-gray-500">No users found</td></tr>`;
+            }
+            
             document.getElementById('users-table-body').innerHTML = tableHTML;
+        }
+
+        function searchUsers() {
+            const searchTerm = document.getElementById('user-search').value;
+            loadUsersData(searchTerm);
         }
 
         // Withdrawals Functions
@@ -351,6 +544,12 @@
             const page = document.getElementById('withdrawals');
             page.innerHTML = `
                 <h1 class="text-3xl font-bold mb-6">Withdrawal Requests</h1>
+                <div class="mb-4 flex space-x-4">
+                    <button onclick="filterWithdrawals('all')" class="btn btn-primary">All</button>
+                    <button onclick="filterWithdrawals('pending')" class="btn btn-warning">Pending</button>
+                    <button onclick="filterWithdrawals('approved')" class="btn btn-success">Approved</button>
+                    <button onclick="filterWithdrawals('rejected')" class="btn btn-danger">Rejected</button>
+                </div>
                 <div class="bg-white shadow rounded-lg p-4">
                     <div class="overflow-x-auto">
                         <div id="withdrawals-table-container">Loading...</div>
@@ -358,10 +557,22 @@
                 </div>
             `;
             
-            const withdrawalsSnap = await getDocs(query(collection(db, "withdrawals"), where("status", "==", "pending")));
+            await loadWithdrawalsData('all');
+        }
+
+        async function loadWithdrawalsData(filter = 'all') {
+            let q;
+            if (filter === 'all') {
+                q = query(collection(db, "withdrawals"), orderBy("requestedAt", "desc"));
+            } else {
+                q = query(collection(db, "withdrawals"), where("status", "==", filter), orderBy("requestedAt", "desc"));
+            }
+            
+            const withdrawalsSnap = await getDocs(q);
             
             if (withdrawalsSnap.empty) {
-                document.getElementById('withdrawals-table-container').innerHTML = `<p class="text-center p-4 text-gray-500">No pending withdrawal requests.</p>`;
+                document.getElementById('withdrawals-table-container').innerHTML = 
+                    `<p class="text-center p-4 text-gray-500">No withdrawal requests found.</p>`;
                 return;
             }
 
@@ -372,7 +583,9 @@
                         <th class="px-6 py-3">Amount</th>
                         <th class="px-6 py-3">Method</th>
                         <th class="px-6 py-3">Details</th>
+                        <th class="px-6 py-3">Country</th>
                         <th class="px-6 py-3">Requested At</th>
+                        <th class="px-6 py-3">Status</th>
                         <th class="px-6 py-3">Actions</th>
                     </tr>
                 </thead>
@@ -381,15 +594,25 @@
             withdrawalsSnap.forEach(doc => {
                 const req = doc.data();
                 const requestedDate = req.requestedAt?.toDate().toLocaleString() || 'N/A';
+                const statusClass = req.status === 'approved' ? 'status-approved' : 
+                                  req.status === 'pending' ? 'status-pending' : 'status-rejected';
+                const country = req.country || 'N/A';
+                
                 tableHTML += `<tr class="bg-white border-b">
-                    <td class="px-6 py-4 truncate">${req.userName || 'N/A'}</td>
+                    <td class="px-6 py-4">${req.userName || 'N/A'}</td>
                     <td class="px-6 py-4 font-semibold">${req.amount}</td>
                     <td class="px-6 py-4">${req.method}</td>
-                    <td class="px-6 py-4 truncate" title="${req.paymentDetail}">${req.paymentDetail || 'N/A'}</td>
+                    <td class="px-6 py-4 truncate max-w-xs" title="${req.paymentDetail}">${req.paymentDetail || 'N/A'}</td>
+                    <td class="px-6 py-4">${country}</td>
                     <td class="px-6 py-4 text-gray-500 text-sm">${requestedDate}</td>
-                    <td class="px-6 py-4 flex flex-nowrap gap-2">
-                        <button onclick="window.processWithdrawal('${doc.id}', 'approved')" class="btn-success text-xs px-2 py-1 rounded">Approve</button>
-                        <button onclick="window.processWithdrawal('${doc.id}', 'rejected')" class="btn-danger text-xs px-2 py-1 rounded">Reject</button>
+                    <td class="px-6 py-4"><span class="status-badge ${statusClass}">${req.status}</span></td>
+                    <td class="px-6 py-4">
+                        ${req.status === 'pending' ? `
+                        <div class="flex space-x-2">
+                            <button onclick="processWithdrawal('${doc.id}', 'approved')" class="btn-success text-xs px-2 py-1 rounded">Approve</button>
+                            <button onclick="processWithdrawal('${doc.id}', 'rejected')" class="btn-danger text-xs px-2 py-1 rounded">Reject</button>
+                        </div>
+                        ` : '—'}
                     </td>
                 </tr>`;
             });
@@ -398,25 +621,167 @@
             document.getElementById('withdrawals-table-container').innerHTML = tableHTML;
         }
 
+        function filterWithdrawals(status) {
+            loadWithdrawalsData(status);
+        }
+
+        // Point History Functions
+        async function loadPointHistory() {
+            const page = document.getElementById('point-history');
+            page.innerHTML = `
+                <div class="flex justify-between items-center mb-6">
+                    <h1 class="text-3xl font-bold">Point History</h1>
+                    <div class="flex space-x-4">
+                        <input type="text" id="history-user-search" placeholder="Search by user..." class="input-field w-48">
+                        <select id="history-task-filter" class="input-field w-32">
+                            <option value="">All Tasks</option>
+                            <option value="ad_watch">Ad Watch</option>
+                            <option value="color_game">Color Game</option>
+                            <option value="website_visit">Website Visit</option>
+                            <option value="referral">Referral</option>
+                            <option value="withdrawal">Withdrawal</option>
+                        </select>
+                        <input type="date" id="history-date-filter" class="input-field w-40">
+                        <button onclick="filterPointHistory()" class="btn btn-primary">Filter</button>
+                    </div>
+                </div>
+                <div class="bg-white shadow rounded-lg p-4">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left text-gray-600">
+                            <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3">User</th>
+                                    <th class="px-6 py-3">Points</th>
+                                    <th class="px-6 py-3">Task</th>
+                                    <th class="px-6 py-3">Details</th>
+                                    <th class="px-6 py-3">Country</th>
+                                    <th class="px-6 py-3">Date & Time</th>
+                                </tr>
+                            </thead>
+                            <tbody id="point-history-body">Loading...</tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+            
+            await loadPointHistoryData();
+        }
+
+        async function loadPointHistoryData(filters = {}) {
+            let q = query(collection(db, "pointHistory"), orderBy("timestamp", "desc"), limit(100));
+            
+            const historySnap = await getDocs(q);
+            let tableHTML = '';
+            
+            historySnap.forEach(doc => {
+                const history = doc.data();
+                const userName = history.userName || 'N/A';
+                const userEmail = history.userEmail || '';
+                const taskType = history.taskType || 'unknown';
+                const points = history.points || 0;
+                const country = history.country || 'N/A';
+                const timestamp = history.timestamp?.toDate().toLocaleString() || 'N/A';
+                const details = history.details || '';
+                
+                // Apply filters
+                if (filters.userSearch && 
+                    !userName.toLowerCase().includes(filters.userSearch.toLowerCase()) && 
+                    !userEmail.toLowerCase().includes(filters.userSearch.toLowerCase())) {
+                    return;
+                }
+                
+                if (filters.taskType && filters.taskType !== taskType) {
+                    return;
+                }
+                
+                if (filters.date) {
+                    const historyDate = history.timestamp?.toDate().toLocaleDateString();
+                    if (historyDate !== filters.date) {
+                        return;
+                    }
+                }
+                
+                const pointsClass = points > 0 ? 'text-green-600' : 'text-red-600';
+                const taskLabels = {
+                    'ad_watch': 'Ad Watch',
+                    'color_game': 'Color Game',
+                    'website_visit': 'Website Visit',
+                    'referral': 'Referral Bonus',
+                    'withdrawal': 'Withdrawal',
+                    'admin_adjustment': 'Admin Adjustment'
+                };
+                
+                tableHTML += `<tr class="bg-white border-b">
+                    <td class="px-6 py-4">${userName}</td>
+                    <td class="px-6 py-4 font-semibold ${pointsClass}">${points > 0 ? '+' : ''}${points}</td>
+                    <td class="px-6 py-4">${taskLabels[taskType] || taskType}</td>
+                    <td class="px-6 py-4 truncate max-w-xs">${details}</td>
+                    <td class="px-6 py-4">${country}</td>
+                    <td class="px-6 py-4 text-gray-500 text-sm">${timestamp}</td>
+                </tr>`;
+            });
+            
+            if (!tableHTML) {
+                tableHTML = `<tr><td colspan="6" class="text-center py-4 text-gray-500">No point history found</td></tr>`;
+            }
+            
+            document.getElementById('point-history-body').innerHTML = tableHTML;
+        }
+
+        function filterPointHistory() {
+            const filters = {
+                userSearch: document.getElementById('history-user-search').value,
+                taskType: document.getElementById('history-task-filter').value,
+                date: document.getElementById('history-date-filter').value
+            };
+            loadPointHistoryData(filters);
+        }
+
         // Notifications Functions
         function loadNotifications() {
             const page = document.getElementById('notifications');
             page.innerHTML = `
                 <h1 class="text-3xl font-bold mb-6">Send Notification</h1>
-                <div class="stat-card p-6 max-w-lg">
-                    <div class="mb-4">
-                        <label for="notification-title" class="block font-semibold mb-2">Title</label>
-                        <input type="text" id="notification-title" class="input-field" placeholder="Notification title">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="stat-card p-6">
+                        <h2 class="text-xl font-bold mb-4">Send to All Users</h2>
+                        <div class="mb-4">
+                            <label for="notification-title" class="block font-semibold mb-2">Title</label>
+                            <input type="text" id="notification-title" class="input-field" placeholder="Notification title">
+                        </div>
+                        <div class="mb-6">
+                            <label for="notification-message" class="block font-semibold mb-2">Message</label>
+                            <textarea id="notification-message" rows="4" class="input-field" placeholder="Notification message"></textarea>
+                        </div>
+                        <button id="send-notification-btn" class="btn btn-primary w-full">Send to All Users</button>
                     </div>
-                    <div class="mb-6">
-                        <label for="notification-message" class="block font-semibold mb-2">Message</label>
-                        <textarea id="notification-message" rows="4" class="input-field" placeholder="Notification message"></textarea>
+                    
+                    <div class="stat-card p-6">
+                        <h2 class="text-xl font-bold mb-4">Telegram Bot Configuration</h2>
+                        <div class="mb-4">
+                            <label for="telegram-bot-token" class="block font-semibold mb-2">Bot Token</label>
+                            <input type="text" id="telegram-bot-token" class="input-field" placeholder="Enter bot token">
+                        </div>
+                        <div class="mb-6">
+                            <label for="telegram-chat-id" class="block font-semibold mb-2">Chat ID</label>
+                            <input type="text" id="telegram-chat-id" class="input-field" placeholder="Enter chat ID">
+                        </div>
+                        <button onclick="testTelegramConnection()" class="btn btn-warning w-full mb-2">Test Connection</button>
+                        <button onclick="saveTelegramConfig()" class="btn btn-success w-full">Save Configuration</button>
                     </div>
-                    <button id="send-notification-btn" class="btn btn-primary w-full">Send to All Users</button>
+                </div>
+                
+                <div class="mt-8">
+                    <h2 class="text-2xl font-bold mb-4">Notification History</h2>
+                    <div id="notification-history" class="bg-white shadow rounded-lg p-4">
+                        Loading...
+                    </div>
                 </div>
             `;
             
             document.getElementById('send-notification-btn').addEventListener('click', sendNotification);
+            loadNotificationHistory();
+            loadTelegramConfig();
         }
 
         async function sendNotification() {
@@ -430,18 +795,144 @@
             
             loader.style.display = 'flex';
             try {
+                // Save to Firebase
                 await addDoc(collection(db, "notifications"), {
                     title,
                     message,
-                    createdAt: serverTimestamp()
+                    createdAt: serverTimestamp(),
+                    sentToAll: true
                 });
+                
+                // Send to Telegram if configured
+                await sendTelegramNotification(title, message);
                 
                 showToast("Notification sent successfully!");
                 document.getElementById('notification-title').value = '';
                 document.getElementById('notification-message').value = '';
+                loadNotificationHistory();
             } catch (error) {
                 console.error("Error sending notification:", error);
                 showAlert("Error sending notification: " + error.message, true);
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
+
+        async function sendTelegramNotification(title, message) {
+            const configSnap = await getDoc(doc(db, "config", "telegram"));
+            if (!configSnap.exists()) return;
+            
+            const config = configSnap.data();
+            if (!config.botToken || !config.chatId) return;
+            
+            const telegramMessage = `*${title}*\n\n${message}`;
+            
+            try {
+                const response = await fetch(`https://api.telegram.org/bot${config.botToken}/sendMessage`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        chat_id: config.chatId,
+                        text: telegramMessage,
+                        parse_mode: 'Markdown'
+                    })
+                });
+                
+                const result = await response.json();
+                if (!result.ok) {
+                    console.error("Telegram API error:", result);
+                }
+            } catch (error) {
+                console.error("Error sending to Telegram:", error);
+            }
+        }
+
+        async function loadNotificationHistory() {
+            const notificationsSnap = await getDocs(query(
+                collection(db, "notifications"), 
+                orderBy("createdAt", "desc"), 
+                limit(10)
+            ));
+            
+            let html = `<table class="w-full">
+                <thead><tr><th>Title</th><th>Message</th><th>Sent At</th></tr></thead>
+                <tbody>`;
+            
+            if (notificationsSnap.empty) {
+                html += `<tr><td colspan="3" class="text-center py-4 text-gray-500">No notifications sent yet</td></tr>`;
+            } else {
+                notificationsSnap.forEach(doc => {
+                    const notification = doc.data();
+                    const sentAt = notification.createdAt?.toDate().toLocaleString() || 'N/A';
+                    html += `<tr class="border-b">
+                        <td class="py-2 font-semibold">${notification.title}</td>
+                        <td class="py-2">${notification.message}</td>
+                        <td class="py-2 text-gray-500 text-sm">${sentAt}</td>
+                    </tr>`;
+                });
+            }
+            
+            html += `</tbody></table>`;
+            document.getElementById('notification-history').innerHTML = html;
+        }
+
+        async function loadTelegramConfig() {
+            const configSnap = await getDoc(doc(db, "config", "telegram"));
+            if (configSnap.exists()) {
+                const config = configSnap.data();
+                document.getElementById('telegram-bot-token').value = config.botToken || '';
+                document.getElementById('telegram-chat-id').value = config.chatId || '';
+            }
+        }
+
+        async function saveTelegramConfig() {
+            const botToken = document.getElementById('telegram-bot-token').value;
+            const chatId = document.getElementById('telegram-chat-id').value;
+            
+            if (!botToken || !chatId) {
+                showAlert("Please enter both Bot Token and Chat ID.");
+                return;
+            }
+            
+            loader.style.display = 'flex';
+            try {
+                await setDoc(doc(db, "config", "telegram"), {
+                    botToken,
+                    chatId,
+                    updatedAt: serverTimestamp()
+                });
+                showToast("Telegram configuration saved successfully!");
+            } catch (error) {
+                console.error("Error saving Telegram config:", error);
+                showAlert("Error saving configuration: " + error.message, true);
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
+
+        async function testTelegramConnection() {
+            const botToken = document.getElementById('telegram-bot-token').value;
+            const chatId = document.getElementById('telegram-chat-id').value;
+            
+            if (!botToken || !chatId) {
+                showAlert("Please enter both Bot Token and Chat ID to test.");
+                return;
+            }
+            
+            loader.style.display = 'flex';
+            try {
+                const response = await fetch(`https://api.telegram.org/bot${botToken}/getMe`);
+                const result = await response.json();
+                
+                if (result.ok) {
+                    showAlert("Bot connection successful! Bot name: " + result.result.first_name);
+                } else {
+                    showAlert("Bot connection failed: " + result.description, true);
+                }
+            } catch (error) {
+                showAlert("Error testing connection: " + error.message, true);
             } finally {
                 loader.style.display = 'none';
             }
@@ -484,6 +975,19 @@
                                 <label class="font-semibold">Payment Methods (comma separated)</label>
                                 <input type="text" id="paymentMethods" class="input-field" placeholder="UPI, Paytm, PhonePe">
                             </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <h2 class="text-xl font-bold mb-4">Country Restrictions</h2>
+                        <div class="mb-4">
+                            <label class="font-semibold">Allowed Countries (comma separated, empty means all allowed)</label>
+                            <input type="text" id="allowedCountries" class="input-field" placeholder="bd, in, pk, us, uk">
+                            <p class="text-sm text-gray-500 mt-1">Enter country codes separated by commas. Leave empty to allow all countries.</p>
+                        </div>
+                        <div class="mb-4">
+                            <label class="font-semibold">Blocked Message</label>
+                            <textarea id="blockedCountryMessage" class="input-field h-24" placeholder="Message shown to users from blocked countries"></textarea>
                         </div>
                     </div>
                     
@@ -545,6 +1049,8 @@
                 document.getElementById('referralBonus').value = config.referralBonus || '';
                 document.getElementById('referralRules').value = (config.referralRules || []).join('\n');
                 document.getElementById('referralShareText').value = config.referralShareText || '';
+                document.getElementById('allowedCountries').value = (config.allowedCountries || []).join(',');
+                document.getElementById('blockedCountryMessage').value = config.blockedCountryMessage || 'Sorry, this app is not available in your country.';
             }
             
             // Render dynamic lists
@@ -631,6 +1137,8 @@
             newConfig.paymentMethods = document.getElementById('paymentMethods').value.split(',').map(s => s.trim()).filter(Boolean);
             newConfig.referralRules = document.getElementById('referralRules').value.split('\n').map(s => s.trim()).filter(Boolean);
             newConfig.referralShareText = document.getElementById('referralShareText').value;
+            newConfig.allowedCountries = document.getElementById('allowedCountries').value.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+            newConfig.blockedCountryMessage = document.getElementById('blockedCountryMessage').value;
 
             // Get dynamic lists
             ['sliderBanners', 'websitesToVisit', 'socialTasks'].forEach(key => {
@@ -674,8 +1182,8 @@
             }
         }
 
-        // Global functions for event handlers
-        window.toggleUserBlock = async function(userId, isBlocked) {
+        // User Management Functions
+        async function toggleUserBlock(userId, isBlocked) {
             showConfirm(`Are you sure you want to ${isBlocked ? 'unblock' : 'block'} this user?`, async () => {
                 loader.style.display = 'flex';
                 try {
@@ -689,39 +1197,140 @@
                     loader.style.display = 'none';
                 }
             });
-        };
+        }
 
-        window.processWithdrawal = async function(requestId, action) {
-            showConfirm(`Are you sure you want to ${action} this withdrawal request?`, async () => {
+        async function resetDailyAds(userId) {
+            showConfirm("Are you sure you want to reset daily ads for this user?", async () => {
                 loader.style.display = 'flex';
-                const batch = writeBatch(db);
-                const requestRef = doc(db, "withdrawals", requestId);
-                batch.update(requestRef, { status: action });
-
                 try {
-                    if (action === 'rejected') {
-                        const requestSnap = await getDoc(requestRef);
-                        if (requestSnap.exists()) {
-                            const requestData = requestSnap.data();
-                            const userRef = doc(db, "users", requestData.userId);
-                            const userSnap = await getDoc(userRef);
-                            if (userSnap.exists()) {
-                                const currentBalance = userSnap.data().balance || 0;
-                                batch.update(userRef, { balance: currentBalance + requestData.amount });
-                            }
-                        }
-                    }
-                    await batch.commit();
-                    showToast(`Withdrawal request ${action} successfully!`);
-                    loadWithdrawals();
+                    await updateDoc(doc(db, "users", userId), { 
+                        dailyAdsWatched: 0,
+                        lastAdDate: new Date().toDateString()
+                    });
+                    showToast("Daily ads reset successfully!");
+                    loadUsers();
                 } catch (error) {
-                    console.error("Error processing withdrawal:", error);
-                    showAlert("Error processing withdrawal request.", true);
+                    console.error("Error resetting daily ads:", error);
+                    showAlert("Error resetting daily ads.", true);
                 } finally {
                     loader.style.display = 'none';
                 }
             });
-        };
+        }
+
+        // Point Editing Functions
+        function openEditPointsModal(userId, userName, userEmail, currentBalance) {
+            currentEditingUserId = userId;
+            document.getElementById('edit-user-name').textContent = userName;
+            document.getElementById('edit-user-email').textContent = userEmail;
+            document.getElementById('edit-current-balance').textContent = currentBalance;
+            document.getElementById('new-balance-input').value = currentBalance;
+            document.getElementById('edit-points-modal').style.display = 'flex';
+        }
+
+        function closeEditPointsModal() {
+            document.getElementById('edit-points-modal').style.display = 'none';
+            currentEditingUserId = null;
+        }
+
+        async function saveUserPoints() {
+            const newBalance = parseInt(document.getElementById('new-balance-input').value);
+            
+            if (isNaN(newBalance)) {
+                showAlert("Please enter a valid number for the balance.");
+                return;
+            }
+            
+            loader.style.display = 'flex';
+            try {
+                // Get current balance
+                const userRef = doc(db, "users", currentEditingUserId);
+                const userSnap = await getDoc(userRef);
+                const currentBalance = userSnap.data().balance || 0;
+                
+                // Update user balance
+                await updateDoc(userRef, { balance: newBalance });
+                
+                // Add point history record
+                await addDoc(collection(db, "pointHistory"), {
+                    userId: currentEditingUserId,
+                    userName: document.getElementById('edit-user-name').textContent,
+                    userEmail: document.getElementById('edit-user-email').textContent,
+                    taskType: 'admin_adjustment',
+                    points: newBalance - currentBalance,
+                    details: `Admin adjusted balance from ${currentBalance} to ${newBalance}`,
+                    timestamp: serverTimestamp(),
+                    country: userSnap.data().country || 'N/A'
+                });
+                
+                showToast("User points updated successfully!");
+                closeEditPointsModal();
+                loadUsers();
+            } catch (error) {
+                console.error("Error updating user points:", error);
+                showAlert("Error updating user points: " + error.message, true);
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
+
+        // Withdrawal Processing Functions
+        async function processWithdrawal(requestId, action) {
+            showConfirm(`Are you sure you want to ${action} this withdrawal request?`, async () => {
+                loader.style.display = 'flex';
+                const batch = writeBatch(db);
+                const requestRef = doc(db, "withdrawals", requestId);
+                
+                try {
+                    // Get request data
+                    const requestSnap = await getDoc(requestRef);
+                    if (!requestSnap.exists()) {
+                        throw new Error("Request not found");
+                    }
+                    
+                    const requestData = requestSnap.data();
+                    
+                    // Update withdrawal status
+                    batch.update(requestRef, { 
+                        status: action,
+                        processedAt: serverTimestamp()
+                    });
+                    
+                    // If rejected, refund coins to user
+                    if (action === 'rejected') {
+                        const userRef = doc(db, "users", requestData.userId);
+                        const userSnap = await getDoc(userRef);
+                        
+                        if (userSnap.exists()) {
+                            const currentBalance = userSnap.data().balance || 0;
+                            batch.update(userRef, { balance: currentBalance + requestData.amount });
+                            
+                            // Add point history for refund
+                            await addDoc(collection(db, "pointHistory"), {
+                                userId: requestData.userId,
+                                userName: requestData.userName,
+                                userEmail: requestData.userEmail || '',
+                                taskType: 'withdrawal',
+                                points: requestData.amount,
+                                details: `Refund for rejected withdrawal #${requestId}`,
+                                timestamp: serverTimestamp(),
+                                country: requestData.country || 'N/A'
+                            });
+                        }
+                    }
+                    
+                    await batch.commit();
+                    showToast(`Withdrawal request ${action} successfully!`);
+                    loadWithdrawals();
+                    loadDashboardData();
+                } catch (error) {
+                    console.error("Error processing withdrawal:", error);
+                    showAlert("Error processing withdrawal request: " + error.message, true);
+                } finally {
+                    loader.style.display = 'none';
+                }
+            });
+        }
 
         // Utility Functions
         function showAlert(message, isError = false) {
@@ -734,16 +1343,16 @@
             const confirmModal = document.getElementById('custom-confirm');
             confirmModal.classList.remove('hidden');
             
-            const okBtn = document.getElementById('confirm-ok-btn');
-            const cancelBtn = document.getElementById('confirm-cancel-btn');
+            // Create new buttons to avoid duplicate listeners
+            const oldOkBtn = document.getElementById('confirm-ok-btn');
+            const oldCancelBtn = document.getElementById('confirm-cancel-btn');
             
-            // Remove existing listeners
-            const newOkBtn = okBtn.cloneNode(true);
-            const newCancelBtn = cancelBtn.cloneNode(true);
-            okBtn.parentNode.replaceChild(newOkBtn, okBtn);
-            cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+            const newOkBtn = oldOkBtn.cloneNode(true);
+            const newCancelBtn = oldCancelBtn.cloneNode(true);
             
-            // Add new listeners
+            oldOkBtn.parentNode.replaceChild(newOkBtn, oldOkBtn);
+            oldCancelBtn.parentNode.replaceChild(newCancelBtn, oldCancelBtn);
+            
             newOkBtn.addEventListener('click', () => {
                 confirmModal.classList.add('hidden');
                 onConfirm();
@@ -773,6 +1382,19 @@
                 }, 500);
             }, 3000);
         }
+
+        // Make functions available globally
+        window.toggleUserBlock = toggleUserBlock;
+        window.processWithdrawal = processWithdrawal;
+        window.openEditPointsModal = openEditPointsModal;
+        window.closeEditPointsModal = closeEditPointsModal;
+        window.saveUserPoints = saveUserPoints;
+        window.resetDailyAds = resetDailyAds;
+        window.searchUsers = searchUsers;
+        window.filterWithdrawals = filterWithdrawals;
+        window.filterPointHistory = filterPointHistory;
+        window.testTelegramConnection = testTelegramConnection;
+        window.saveTelegramConfig = saveTelegramConfig;
     </script>
 </body>
 </html>

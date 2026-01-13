@@ -39,6 +39,7 @@
         .modal { background: white; border-radius: 0.5rem; max-width: 500px; margin: 2rem auto; padding: 1.5rem; max-height: 80vh; overflow-y: auto; }
         .point-input { width: 100px; text-align: center; }
         .view-points-btn { background-color: #3b82f6; color: white; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; }
+        .api-test-btn { background-color: #8b5cf6; color: white; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; }
     </style>
 </head>
 <body>
@@ -889,7 +890,7 @@
             }
         }
 
-        // Settings Functions
+        // Settings Functions - UPDATED WITH IPINFO API FIELD
         async function loadSettings() {
             const page = document.getElementById('settings');
             page.innerHTML = `
@@ -931,15 +932,38 @@
                     </div>
                     
                     <div class="bg-white p-6 rounded-lg shadow">
-                        <h2 class="text-xl font-bold mb-4">Country Restrictions</h2>
+                        <h2 class="text-xl font-bold mb-4">IP Geolocation & Country Restrictions</h2>
+                        <div class="mb-4">
+                            <label class="font-semibold">IPinfo API Token</label>
+                            <div class="flex items-center space-x-2">
+                                <input type="text" id="ipinfoApiToken" class="input-field" placeholder="Enter IPinfo API token">
+                                <button onclick="testIpinfoApi()" class="api-test-btn">Test API</button>
+                            </div>
+                            <p class="text-sm text-gray-500 mt-1">
+                                Leave blank to disable country detection. Get free token from 
+                                <a href="https://ipinfo.io/signup" target="_blank" class="text-blue-500 hover:underline">ipinfo.io/signup</a>
+                            </p>
+                        </div>
                         <div class="mb-4">
                             <label class="font-semibold">Allowed Countries (comma separated, empty means all allowed)</label>
                             <input type="text" id="allowedCountries" class="input-field" placeholder="bd, in, pk, us, uk">
-                            <p class="text-sm text-gray-500 mt-1">Enter country codes separated by commas. Leave empty to allow all countries.</p>
+                            <p class="text-sm text-gray-500 mt-1">
+                                Enter country codes separated by commas. 
+                                <span class="font-semibold text-blue-600">If both API token and this field are empty, all countries will be allowed.</span>
+                            </p>
                         </div>
                         <div class="mb-4">
-                            <label class="font-semibold">Blocked Message</label>
+                            <label class="font-semibold">Blocked Country Message</label>
                             <textarea id="blockedCountryMessage" class="input-field h-24" placeholder="Message shown to users from blocked countries"></textarea>
+                        </div>
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <h3 class="font-semibold text-blue-800 mb-2">How Country Restrictions Work:</h3>
+                            <ul class="list-disc list-inside text-sm text-blue-700 space-y-1">
+                                <li>If API token is empty → Country detection is disabled</li>
+                                <li>If allowed countries list is empty → All countries are allowed</li>
+                                <li>If both are empty → All countries are allowed (no restrictions)</li>
+                                <li>If API token exists and allowed countries list has values → Only listed countries allowed</li>
+                            </ul>
                         </div>
                     </div>
                     
@@ -989,7 +1013,7 @@
             // Populate settings fields
             if (configSnap.exists()) {
                 document.getElementById('minWithdrawal').value = config.minWithdrawal || '';
-                document.getElementById('dailyAdLimit').value = config.dailyAdLimit || 100; // Default 100
+                document.getElementById('dailyAdLimit').value = config.dailyAdLimit || 100;
                 document.getElementById('adWatchReward').value = config.adWatchReward || '';
                 document.getElementById('colorGameReward').value = config.colorGameReward || '';
                 document.getElementById('coinValueCoins').value = config.coinValueCoins || '';
@@ -1001,6 +1025,7 @@
                 document.getElementById('referralBonus').value = config.referralBonus || '';
                 document.getElementById('referralRules').value = (config.referralRules || []).join('\n');
                 document.getElementById('referralShareText').value = config.referralShareText || '';
+                document.getElementById('ipinfoApiToken').value = config.ipinfoApiToken || '';
                 document.getElementById('allowedCountries').value = (config.allowedCountries || []).join(',');
                 document.getElementById('blockedCountryMessage').value = config.blockedCountryMessage || 'Sorry, this app is not available in your country.';
             }
@@ -1012,6 +1037,44 @@
             
             // Add event listener for save button
             document.getElementById('save-settings-btn').addEventListener('click', saveSettings);
+            
+            // Add event listener for IPinfo API test
+            document.getElementById('ipinfoApiToken').addEventListener('keyup', (e) => {
+                if (e.key === 'Enter') testIpinfoApi();
+            });
+        }
+
+        async function testIpinfoApi() {
+            const apiToken = document.getElementById('ipinfoApiToken').value.trim();
+            
+            if (!apiToken) {
+                showAlert("Please enter an API token to test.");
+                return;
+            }
+            
+            loader.style.display = 'flex';
+            try {
+                // Test the API with a sample IP
+                const response = await fetch(`https://api.ipinfo.io/lite/8.8.8.8?token=${apiToken}`);
+                
+                if (!response.ok) {
+                    throw new Error(`API returned status: ${response.status}`);
+                }
+                
+                const data = await response.text();
+                const country = data.trim(); // IPinfo lite API returns just the country code
+                
+                if (country && country.length === 2) {
+                    showAlert(`✅ API Test Successful! Detected country: ${country}`);
+                } else {
+                    showAlert(`⚠️ API responded but didn't return a valid country code. Response: "${data}"`);
+                }
+            } catch (error) {
+                console.error("IPinfo API test error:", error);
+                showAlert(`❌ API Test Failed: ${error.message}. Check your token.`, true);
+            } finally {
+                loader.style.display = 'none';
+            }
         }
 
         function renderListEditor(key, items, fields) {
@@ -1076,7 +1139,7 @@
             
             // Get all settings from inputs
             newConfig.minWithdrawal = parseInt(document.getElementById('minWithdrawal').value) || 0;
-            newConfig.dailyAdLimit = parseInt(document.getElementById('dailyAdLimit').value) || 100; // Default 100
+            newConfig.dailyAdLimit = parseInt(document.getElementById('dailyAdLimit').value) || 100;
             newConfig.adWatchReward = parseInt(document.getElementById('adWatchReward').value) || 0;
             newConfig.colorGameReward = parseInt(document.getElementById('colorGameReward').value) || 0;
             newConfig.coinValueCoins = parseInt(document.getElementById('coinValueCoins').value) || 0;
@@ -1089,6 +1152,7 @@
             newConfig.paymentMethods = document.getElementById('paymentMethods').value.split(',').map(s => s.trim()).filter(Boolean);
             newConfig.referralRules = document.getElementById('referralRules').value.split('\n').map(s => s.trim()).filter(Boolean);
             newConfig.referralShareText = document.getElementById('referralShareText').value;
+            newConfig.ipinfoApiToken = document.getElementById('ipinfoApiToken').value.trim();
             newConfig.allowedCountries = document.getElementById('allowedCountries').value.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
             newConfig.blockedCountryMessage = document.getElementById('blockedCountryMessage').value;
 
@@ -1417,6 +1481,7 @@
         window.saveTelegramConfig = saveTelegramConfig;
         window.viewUserPointHistory = viewUserPointHistory;
         window.closePointHistoryModal = closePointHistoryModal;
+        window.testIpinfoApi = testIpinfoApi;
     </script>
 </body>
 </html>

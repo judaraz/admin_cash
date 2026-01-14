@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CashReward Admin Panel</title>
+    <title>CashReward Admin Panel - Game Management</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -34,12 +34,23 @@
         .status-pending { background-color: #fef3c7; color: #92400e; }
         .status-approved { background-color: #d1fae5; color: #065f46; }
         .status-rejected { background-color: #fee2e2; color: #991b1b; }
+        .status-visible { background-color: #3b82f6; color: white; }
+        .status-hidden { background-color: #6b7280; color: white; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; }
         .modal { background: white; border-radius: 0.5rem; max-width: 500px; margin: 2rem auto; padding: 1.5rem; max-height: 80vh; overflow-y: auto; }
         .point-input { width: 100px; text-align: center; }
         .view-points-btn { background-color: #3b82f6; color: white; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; }
-        .api-test-btn { background-color: #8b5cf6; color: white; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; }
+        .game-card { background: white; border-radius: 0.5rem; padding: 1.5rem; box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1); }
+        .time-input { width: 120px; }
+        .switch { position: relative; display: inline-block; width: 60px; height: 34px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; }
+        .slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; transition: .4s; }
+        input:checked + .slider { background-color: #10b981; }
+        input:checked + .slider:before { transform: translateX(26px); }
+        .slider.round { border-radius: 34px; }
+        .slider.round:before { border-radius: 50%; }
     </style>
 </head>
 <body>
@@ -75,6 +86,9 @@
                     <a href="#" data-page="withdrawals" class="sidebar-link flex items-center py-3 px-4">
                         <i data-lucide="banknote" class="w-5 h-5 mr-3"></i>Withdrawals
                     </a>
+                    <a href="#" data-page="games" class="sidebar-link flex items-center py-3 px-4">
+                        <i data-lucide="gamepad-2" class="w-5 h-5 mr-3"></i>Game Management
+                    </a>
                     <a href="#" data-page="notifications" class="sidebar-link flex items-center py-3 px-4">
                         <i data-lucide="send" class="w-5 h-5 mr-3"></i>Notifications
                     </a>
@@ -92,6 +106,7 @@
                 <div id="dashboard" class="admin-page active"></div>
                 <div id="users" class="admin-page"></div>
                 <div id="withdrawals" class="admin-page"></div>
+                <div id="games" class="admin-page"></div>
                 <div id="notifications" class="admin-page"></div>
                 <div id="settings" class="admin-page"></div>
             </main>
@@ -182,6 +197,83 @@
         </div>
     </div>
 
+    <!-- Edit Game Modal -->
+    <div id="edit-game-modal" class="modal-overlay">
+        <div class="modal" style="max-width: 600px;">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold">Edit Game Settings</h3>
+                <button onclick="closeEditGameModal()" class="text-gray-500 hover:text-gray-700">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-6">
+                <div>
+                    <h4 class="font-semibold text-lg mb-2" id="edit-game-title">Game 1</h4>
+                    <p class="text-gray-600 text-sm" id="edit-game-description">Configure game time limits and visibility</p>
+                </div>
+                
+                <div>
+                    <label class="block font-semibold mb-2">Daily Time Limit (minutes)</label>
+                    <div class="flex items-center space-x-2">
+                        <input type="number" id="edit-game-time-limit" class="input-field time-input" min="0" max="1440" placeholder="e.g., 60">
+                        <span class="text-gray-600">minutes per day</span>
+                    </div>
+                    <p class="text-sm text-gray-500 mt-1">0 = unlimited play time</p>
+                </div>
+                
+                <div>
+                    <label class="block font-semibold mb-2">Session Time Limit (minutes)</label>
+                    <div class="flex items-center space-x-2">
+                        <input type="number" id="edit-game-session-limit" class="input-field time-input" min="0" max="240" placeholder="e.g., 10">
+                        <span class="text-gray-600">minutes per session</span>
+                    </div>
+                    <p class="text-sm text-gray-500 mt-1">Maximum continuous play time before break</p>
+                </div>
+                
+                <div>
+                    <label class="block font-semibold mb-2">Cooldown Period (minutes)</label>
+                    <div class="flex items-center space-x-2">
+                        <input type="number" id="edit-game-cooldown" class="input-field time-input" min="0" max="480" placeholder="e.g., 30">
+                        <span class="text-gray-600">minutes between sessions</span>
+                    </div>
+                    <p class="text-sm text-gray-500 mt-1">Wait time after reaching session limit</p>
+                </div>
+                
+                <div class="flex items-center justify-between">
+                    <div>
+                        <label class="font-semibold">Game Visibility</label>
+                        <p class="text-sm text-gray-500">Show/hide this game in the mini-app</p>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="edit-game-visible">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                
+                <div>
+                    <label class="block font-semibold mb-2">Game Reward (points per minute)</label>
+                    <div class="flex items-center space-x-2">
+                        <input type="number" id="edit-game-reward" class="input-field time-input" min="0" placeholder="e.g., 5">
+                        <span class="text-gray-600">points per minute of play</span>
+                    </div>
+                    <p class="text-sm text-gray-500 mt-1">Points earned for playing this game</p>
+                </div>
+                
+                <div>
+                    <label class="block font-semibold mb-2">Game Order</label>
+                    <input type="number" id="edit-game-order" class="input-field w-32" min="1" max="10" placeholder="1-10">
+                    <p class="text-sm text-gray-500 mt-1">Display order in mini-app (1 = first)</p>
+                </div>
+            </div>
+            
+            <div class="mt-8 flex justify-end space-x-3">
+                <button onclick="closeEditGameModal()" class="btn bg-gray-200 text-gray-800 px-6">Cancel</button>
+                <button onclick="saveGameSettings()" class="btn btn-primary px-6">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
         // Firebase Configuration
         const firebaseConfig = {
@@ -214,7 +306,10 @@
             serverTimestamp, 
             setDoc,
             orderBy,
-            limit
+            limit,
+            deleteDoc,
+            arrayUnion,
+            arrayRemove
         } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
         // Initialize Firebase
@@ -235,6 +330,7 @@
         const loader = document.getElementById('loader');
         let currentEditingUserId = null;
         let currentViewingUserId = null;
+        let currentEditingGameId = null;
 
         // Initialize on load
         window.onload = () => {
@@ -319,6 +415,7 @@
             if (pageId === 'dashboard') loadDashboard();
             if (pageId === 'users') loadUsers();
             if (pageId === 'withdrawals') loadWithdrawals();
+            if (pageId === 'games') loadGames();
             if (pageId === 'notifications') loadNotifications();
             if (pageId === 'settings') loadSettings();
         }
@@ -348,6 +445,12 @@
                         </div>
                     </div>
                 </div>
+                <div class="mt-8">
+                    <h2 class="text-2xl font-bold mb-4">Game Statistics</h2>
+                    <div id="game-stats" class="bg-white shadow rounded-lg p-4">
+                        Loading...
+                    </div>
+                </div>
             `;
             
             // Load real-time data
@@ -374,6 +477,7 @@
             loadRecentWithdrawals();
             loadRecentUsers();
             loadTodayEarnings();
+            loadGameStats();
         }
 
         async function loadRecentWithdrawals() {
@@ -459,6 +563,80 @@
             document.getElementById('today-earnings').textContent = totalEarnings;
         }
 
+        async function loadGameStats() {
+            try {
+                // Get game configuration
+                const gamesSnap = await getDoc(doc(db, "config", "games"));
+                const gamesConfig = gamesSnap.exists() ? gamesSnap.data() : {};
+                
+                // Get today's game play data
+                const today = new Date().toISOString().split('T')[0];
+                const todayStats = gamesConfig.dailyStats?.[today] || {};
+                
+                let html = '<div class="grid grid-cols-1 md:grid-cols-2 gap-4">';
+                
+                // Default games (Game 1, Game 2, Watch Video)
+                const defaultGames = [
+                    { id: 'game1', name: 'Game 1', icon: 'gamepad-2', color: 'bg-blue-500' },
+                    { id: 'game2', name: 'Game 2', icon: 'dice-5', color: 'bg-green-500' },
+                    { id: 'watchVideo', name: 'Watch Video', icon: 'video', color: 'bg-purple-500' }
+                ];
+                
+                defaultGames.forEach(game => {
+                    const gameData = gamesConfig[game.id] || {};
+                    const gameStats = todayStats[game.id] || { playCount: 0, totalTime: 0, userCount: 0 };
+                    const isVisible = gameData.visible !== false;
+                    const timeLimit = gameData.dailyTimeLimit || 0;
+                    
+                    html += `
+                        <div class="game-card">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="flex items-center">
+                                    <div class="${game.color} text-white p-2 rounded-lg mr-3">
+                                        <i data-lucide="${game.icon}" class="w-5 h-5"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-bold">${game.name}</h3>
+                                        <p class="text-sm text-gray-500">${isVisible ? 'Visible' : 'Hidden'}</p>
+                                    </div>
+                                </div>
+                                <span class="status-badge ${isVisible ? 'status-visible' : 'status-hidden'}">
+                                    ${isVisible ? 'Visible' : 'Hidden'}
+                                </span>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-3 mt-4">
+                                <div>
+                                    <p class="text-sm text-gray-500">Today's Plays</p>
+                                    <p class="font-bold text-lg">${gameStats.playCount || 0}</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-500">Total Time</p>
+                                    <p class="font-bold text-lg">${gameStats.totalTime || 0} min</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-500">Users</p>
+                                    <p class="font-bold text-lg">${gameStats.userCount || 0}</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-500">Time Limit</p>
+                                    <p class="font-bold text-lg">${timeLimit > 0 ? `${timeLimit} min` : 'Unlimited'}</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+                document.getElementById('game-stats').innerHTML = html;
+                lucide.createIcons();
+            } catch (error) {
+                console.error("Error loading game stats:", error);
+                document.getElementById('game-stats').innerHTML = 
+                    `<p class="text-center text-gray-500">Error loading game statistics</p>`;
+            }
+        }
+
         // Users Functions
         async function loadUsers() {
             const page = document.getElementById('users');
@@ -501,7 +679,7 @@
         async function loadUsersData(searchTerm = '') {
             const configSnap = await getDoc(doc(db, "config", "main"));
             const config = configSnap.exists() ? configSnap.data() : {};
-            const dailyAdLimit = config.dailyAdLimit || 100; // Get from settings, default 100
+            const dailyAdLimit = config.dailyAdLimit || 100;
             
             const usersSnap = await getDocs(collection(db, "users"));
             let tableHTML = '';
@@ -520,7 +698,7 @@
                     return;
                 }
                 
-                const dailyAdsWatched = user.dailyAdsWatched || 0;
+                const dailyAdsWatched = user.dailyAdCount || 0;
                 const country = user.country || 'N/A';
                 
                 tableHTML += `<tr class="bg-white border-b hover:bg-gray-50">
@@ -669,6 +847,470 @@
             loadWithdrawalsData(status);
         }
 
+        // ===== GAME MANAGEMENT =====
+        async function loadGames() {
+            const page = document.getElementById('games');
+            page.innerHTML = `
+                <div class="flex justify-between items-center mb-6">
+                    <h1 class="text-3xl font-bold">Game Management</h1>
+                    <button onclick="resetAllGameStats()" class="btn btn-warning">
+                        Reset All Game Stats
+                    </button>
+                </div>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                    <!-- Game 1 Card -->
+                    <div class="game-card">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center">
+                                <div class="bg-blue-500 text-white p-3 rounded-lg mr-3">
+                                    <i data-lucide="gamepad-2" class="w-6 h-6"></i>
+                                </div>
+                                <div>
+                                    <h2 class="text-xl font-bold">Game 1</h2>
+                                    <p class="text-sm text-gray-500">Classic game with rewards</p>
+                                </div>
+                            </div>
+                            <span id="game1-status" class="status-badge status-visible">Visible</span>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center">
+                                <span class="font-semibold">Daily Time Limit:</span>
+                                <span id="game1-time-limit" class="font-bold">60 minutes</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="font-semibold">Session Limit:</span>
+                                <span id="game1-session-limit" class="font-bold">10 minutes</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="font-semibold">Reward Rate:</span>
+                                <span id="game1-reward" class="font-bold">5 points/min</span>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6">
+                            <button onclick="editGameSettings('game1')" class="btn btn-primary w-full">
+                                Configure Game 1
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Game 2 Card -->
+                    <div class="game-card">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center">
+                                <div class="bg-green-500 text-white p-3 rounded-lg mr-3">
+                                    <i data-lucide="dice-5" class="w-6 h-6"></i>
+                                </div>
+                                <div>
+                                    <h2 class="text-xl font-bold">Game 2</h2>
+                                    <p class="text-sm text-gray-500">Advanced game with bonuses</p>
+                                </div>
+                            </div>
+                            <span id="game2-status" class="status-badge status-visible">Visible</span>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center">
+                                <span class="font-semibold">Daily Time Limit:</span>
+                                <span id="game2-time-limit" class="font-bold">60 minutes</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="font-semibold">Session Limit:</span>
+                                <span id="game2-session-limit" class="font-bold">10 minutes</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="font-semibold">Reward Rate:</span>
+                                <span id="game2-reward" class="font-bold">5 points/min</span>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6">
+                            <button onclick="editGameSettings('game2')" class="btn btn-primary w-full">
+                                Configure Game 2
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Watch Video Card -->
+                    <div class="game-card">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center">
+                                <div class="bg-purple-500 text-white p-3 rounded-lg mr-3">
+                                    <i data-lucide="video" class="w-6 h-6"></i>
+                                </div>
+                                <div>
+                                    <h2 class="text-xl font-bold">Watch Video</h2>
+                                    <p class="text-sm text-gray-500">Earn by watching ads</p>
+                                </div>
+                            </div>
+                            <span id="watchVideo-status" class="status-badge status-visible">Visible</span>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center">
+                                <span class="font-semibold">Daily Time Limit:</span>
+                                <span id="watchVideo-time-limit" class="font-bold">30 minutes</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="font-semibold">Session Limit:</span>
+                                <span id="watchVideo-session-limit" class="font-bold">5 minutes</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="font-semibold">Reward Rate:</span>
+                                <span id="watchVideo-reward" class="font-bold">10 points/min</span>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6">
+                            <button onclick="editGameSettings('watchVideo')" class="btn btn-primary w-full">
+                                Configure Watch Video
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h2 class="text-xl font-bold mb-4">Game Statistics</h2>
+                    <div id="games-stats-table" class="overflow-x-auto">
+                        Loading...
+                    </div>
+                </div>
+                
+                <div class="bg-white p-6 rounded-lg shadow mt-6">
+                    <h2 class="text-xl font-bold mb-4">Global Game Settings</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block font-semibold mb-2">Default Daily Time Limit (minutes)</label>
+                            <input type="number" id="global-daily-limit" class="input-field" placeholder="e.g., 60">
+                            <p class="text-sm text-gray-500 mt-1">Applied to new games when created</p>
+                        </div>
+                        <div>
+                            <label class="block font-semibold mb-2">Default Session Limit (minutes)</label>
+                            <input type="number" id="global-session-limit" class="input-field" placeholder="e.g., 10">
+                            <p class="text-sm text-gray-500 mt-1">Default continuous play time limit</p>
+                        </div>
+                    </div>
+                    <button onclick="saveGlobalGameSettings()" class="btn btn-primary mt-4">Save Global Settings</button>
+                </div>
+            `;
+            
+            await loadGamesData();
+            await loadGamesStats();
+        }
+
+        async function loadGamesData() {
+            try {
+                const gamesSnap = await getDoc(doc(db, "config", "games"));
+                const gamesConfig = gamesSnap.exists() ? gamesSnap.data() : {};
+                
+                // Default configurations if not exists
+                const defaultConfig = {
+                    game1: {
+                        name: "Game 1",
+                        dailyTimeLimit: 60,
+                        sessionTimeLimit: 10,
+                        cooldownPeriod: 30,
+                        visible: true,
+                        rewardPerMinute: 5,
+                        order: 1
+                    },
+                    game2: {
+                        name: "Game 2",
+                        dailyTimeLimit: 60,
+                        sessionTimeLimit: 10,
+                        cooldownPeriod: 30,
+                        visible: true,
+                        rewardPerMinute: 5,
+                        order: 2
+                    },
+                    watchVideo: {
+                        name: "Watch Video",
+                        dailyTimeLimit: 30,
+                        sessionTimeLimit: 5,
+                        cooldownPeriod: 10,
+                        visible: true,
+                        rewardPerMinute: 10,
+                        order: 3
+                    },
+                    globalSettings: {
+                        defaultDailyLimit: 60,
+                        defaultSessionLimit: 10
+                    }
+                };
+                
+                // Merge with existing config
+                const config = { ...defaultConfig, ...gamesConfig };
+                
+                // Update display
+                ['game1', 'game2', 'watchVideo'].forEach(gameId => {
+                    const game = config[gameId] || defaultConfig[gameId];
+                    const statusEl = document.getElementById(`${gameId}-status`);
+                    const timeLimitEl = document.getElementById(`${gameId}-time-limit`);
+                    const sessionLimitEl = document.getElementById(`${gameId}-session-limit`);
+                    const rewardEl = document.getElementById(`${gameId}-reward`);
+                    
+                    if (statusEl) {
+                        statusEl.textContent = game.visible ? 'Visible' : 'Hidden';
+                        statusEl.className = `status-badge ${game.visible ? 'status-visible' : 'status-hidden'}`;
+                    }
+                    if (timeLimitEl) timeLimitEl.textContent = `${game.dailyTimeLimit || 0} minutes`;
+                    if (sessionLimitEl) sessionLimitEl.textContent = `${game.sessionTimeLimit || 0} minutes`;
+                    if (rewardEl) rewardEl.textContent = `${game.rewardPerMinute || 0} points/min`;
+                });
+                
+                // Update global settings
+                if (config.globalSettings) {
+                    document.getElementById('global-daily-limit').value = config.globalSettings.defaultDailyLimit || 60;
+                    document.getElementById('global-session-limit').value = config.globalSettings.defaultSessionLimit || 10;
+                }
+                
+                lucide.createIcons();
+            } catch (error) {
+                console.error("Error loading games data:", error);
+                showAlert("❌ Error loading game configurations", true);
+            }
+        }
+
+        async function loadGamesStats() {
+            try {
+                const gamesSnap = await getDoc(doc(db, "config", "games"));
+                const gamesConfig = gamesSnap.exists() ? gamesSnap.data() : {};
+                
+                // Get today's stats
+                const today = new Date().toISOString().split('T')[0];
+                const todayStats = gamesConfig.dailyStats?.[today] || {};
+                
+                // Get all time stats
+                const allTimeStats = gamesConfig.allTimeStats || {};
+                
+                let html = `<table class="w-full text-sm text-left text-gray-600">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3">Game</th>
+                            <th class="px-6 py-3">Today's Plays</th>
+                            <th class="px-6 py-3">Today's Time</th>
+                            <th class="px-6 py-3">Today's Users</th>
+                            <th class="px-6 py-3">Total Plays</th>
+                            <th class="px-6 py-3">Total Time</th>
+                            <th class="px-6 py-3">Total Users</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+                
+                const games = [
+                    { id: 'game1', name: 'Game 1' },
+                    { id: 'game2', name: 'Game 2' },
+                    { id: 'watchVideo', name: 'Watch Video' }
+                ];
+                
+                games.forEach(game => {
+                    const todayGameStats = todayStats[game.id] || { playCount: 0, totalTime: 0, userCount: 0 };
+                    const allTimeGameStats = allTimeStats[game.id] || { playCount: 0, totalTime: 0, userCount: 0 };
+                    
+                    html += `<tr class="bg-white border-b">
+                        <td class="px-6 py-4 font-semibold">${game.name}</td>
+                        <td class="px-6 py-4">${todayGameStats.playCount}</td>
+                        <td class="px-6 py-4">${todayGameStats.totalTime} min</td>
+                        <td class="px-6 py-4">${todayGameStats.userCount}</td>
+                        <td class="px-6 py-4">${allTimeGameStats.playCount}</td>
+                        <td class="px-6 py-4">${allTimeGameStats.totalTime} min</td>
+                        <td class="px-6 py-4">${allTimeGameStats.userCount}</td>
+                    </tr>`;
+                });
+                
+                // Add totals row
+                const todayTotal = Object.values(todayStats).reduce((acc, stat) => ({
+                    playCount: acc.playCount + (stat.playCount || 0),
+                    totalTime: acc.totalTime + (stat.totalTime || 0),
+                    userCount: Math.max(acc.userCount, stat.userCount || 0)
+                }), { playCount: 0, totalTime: 0, userCount: 0 });
+                
+                const allTimeTotal = Object.values(allTimeStats).reduce((acc, stat) => ({
+                    playCount: acc.playCount + (stat.playCount || 0),
+                    totalTime: acc.totalTime + (stat.totalTime || 0),
+                    userCount: Math.max(acc.userCount, stat.userCount || 0)
+                }), { playCount: 0, totalTime: 0, userCount: 0 });
+                
+                html += `<tr class="bg-gray-50 font-bold">
+                    <td class="px-6 py-4">TOTAL</td>
+                    <td class="px-6 py-4">${todayTotal.playCount}</td>
+                    <td class="px-6 py-4">${todayTotal.totalTime} min</td>
+                    <td class="px-6 py-4">${todayTotal.userCount}</td>
+                    <td class="px-6 py-4">${allTimeTotal.playCount}</td>
+                    <td class="px-6 py-4">${allTimeTotal.totalTime} min</td>
+                    <td class="px-6 py-4">${allTimeTotal.userCount}</td>
+                </tr>`;
+                
+                html += `</tbody></table>`;
+                document.getElementById('games-stats-table').innerHTML = html;
+            } catch (error) {
+                console.error("Error loading game stats:", error);
+                document.getElementById('games-stats-table').innerHTML = 
+                    `<p class="text-center text-gray-500">Error loading game statistics</p>`;
+            }
+        }
+
+        async function editGameSettings(gameId) {
+            currentEditingGameId = gameId;
+            
+            try {
+                const gamesSnap = await getDoc(doc(db, "config", "games"));
+                const gamesConfig = gamesSnap.exists() ? gamesSnap.data() : {};
+                
+                const gameConfig = gamesConfig[gameId] || {};
+                const gameNames = {
+                    'game1': 'Game 1',
+                    'game2': 'Game 2',
+                    'watchVideo': 'Watch Video'
+                };
+                
+                // Set modal title
+                document.getElementById('edit-game-title').textContent = gameNames[gameId] || gameId;
+                document.getElementById('edit-game-description').textContent = 
+                    gameId === 'watchVideo' ? 'Configure video watching limits and rewards' : 'Configure game time limits and visibility';
+                
+                // Set form values
+                document.getElementById('edit-game-time-limit').value = gameConfig.dailyTimeLimit || 60;
+                document.getElementById('edit-game-session-limit').value = gameConfig.sessionTimeLimit || 10;
+                document.getElementById('edit-game-cooldown').value = gameConfig.cooldownPeriod || 30;
+                document.getElementById('edit-game-visible').checked = gameConfig.visible !== false;
+                document.getElementById('edit-game-reward').value = gameConfig.rewardPerMinute || 5;
+                document.getElementById('edit-game-order').value = gameConfig.order || 1;
+                
+                // Show modal
+                document.getElementById('edit-game-modal').style.display = 'flex';
+            } catch (error) {
+                console.error("Error loading game settings:", error);
+                showAlert("❌ Error loading game settings", true);
+            }
+        }
+
+        function closeEditGameModal() {
+            document.getElementById('edit-game-modal').style.display = 'none';
+            currentEditingGameId = null;
+        }
+
+        async function saveGameSettings() {
+            if (!currentEditingGameId) return;
+            
+            const timeLimit = parseInt(document.getElementById('edit-game-time-limit').value) || 0;
+            const sessionLimit = parseInt(document.getElementById('edit-game-session-limit').value) || 0;
+            const cooldown = parseInt(document.getElementById('edit-game-cooldown').value) || 0;
+            const isVisible = document.getElementById('edit-game-visible').checked;
+            const reward = parseInt(document.getElementById('edit-game-reward').value) || 0;
+            const order = parseInt(document.getElementById('edit-game-order').value) || 1;
+            
+            if (timeLimit < 0 || sessionLimit < 0 || cooldown < 0 || reward < 0) {
+                showAlert("❌ Please enter valid positive numbers for all fields");
+                return;
+            }
+            
+            if (order < 1 || order > 10) {
+                showAlert("❌ Order must be between 1 and 10");
+                return;
+            }
+            
+            loader.style.display = 'flex';
+            try {
+                const gameRef = doc(db, "config", "games");
+                const gameSnap = await getDoc(gameRef);
+                const currentData = gameSnap.exists() ? gameSnap.data() : {};
+                
+                const updateData = {
+                    [currentEditingGameId]: {
+                        name: currentEditingGameId === 'game1' ? 'Game 1' : 
+                              currentEditingGameId === 'game2' ? 'Game 2' : 'Watch Video',
+                        dailyTimeLimit: timeLimit,
+                        sessionTimeLimit: sessionLimit,
+                        cooldownPeriod: cooldown,
+                        visible: isVisible,
+                        rewardPerMinute: reward,
+                        order: order,
+                        updatedAt: serverTimestamp()
+                    }
+                };
+                
+                await setDoc(gameRef, updateData, { merge: true });
+                
+                showToast("✅ Game settings saved successfully!");
+                closeEditGameModal();
+                await loadGamesData();
+                await loadGamesStats();
+                if (document.getElementById('dashboard').classList.contains('active')) {
+                    loadGameStats();
+                }
+            } catch (error) {
+                console.error("Error saving game settings:", error);
+                showAlert("❌ Error saving game settings: " + error.message, true);
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
+
+        async function saveGlobalGameSettings() {
+            const defaultDailyLimit = parseInt(document.getElementById('global-daily-limit').value) || 60;
+            const defaultSessionLimit = parseInt(document.getElementById('global-session-limit').value) || 10;
+            
+            if (defaultDailyLimit < 0 || defaultSessionLimit < 0) {
+                showAlert("❌ Please enter valid positive numbers");
+                return;
+            }
+            
+            loader.style.display = 'flex';
+            try {
+                const gameRef = doc(db, "config", "games");
+                const updateData = {
+                    globalSettings: {
+                        defaultDailyLimit: defaultDailyLimit,
+                        defaultSessionLimit: defaultSessionLimit,
+                        updatedAt: serverTimestamp()
+                    }
+                };
+                
+                await setDoc(gameRef, updateData, { merge: true });
+                showToast("✅ Global game settings saved!");
+            } catch (error) {
+                console.error("Error saving global settings:", error);
+                showAlert("❌ Error saving global settings", true);
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
+
+        async function resetAllGameStats() {
+            showConfirm("Are you sure you want to reset all game statistics? This action cannot be undone.", async () => {
+                loader.style.display = 'flex';
+                try {
+                    const gameRef = doc(db, "config", "games");
+                    const gameSnap = await getDoc(gameRef);
+                    const currentData = gameSnap.exists() ? gameSnap.data() : {};
+                    
+                    // Keep game configurations but reset stats
+                    const updateData = {
+                        ...currentData,
+                        dailyStats: {},
+                        allTimeStats: {},
+                        updatedAt: serverTimestamp()
+                    };
+                    
+                    await setDoc(gameRef, updateData);
+                    
+                    showToast("✅ All game statistics reset successfully!");
+                    await loadGamesStats();
+                    if (document.getElementById('dashboard').classList.contains('active')) {
+                        loadGameStats();
+                    }
+                } catch (error) {
+                    console.error("Error resetting game stats:", error);
+                    showAlert("❌ Error resetting game statistics", true);
+                } finally {
+                    loader.style.display = 'none';
+                }
+            });
+        }
+
         // Notifications Functions
         function loadNotifications() {
             const page = document.getElementById('notifications');
@@ -738,13 +1380,13 @@
                 // Send to Telegram if configured
                 await sendTelegramNotification(title, message);
                 
-                showToast("Notification sent successfully!");
+                showToast("✅ Notification sent successfully!");
                 document.getElementById('notification-title').value = '';
                 document.getElementById('notification-message').value = '';
                 loadNotificationHistory();
             } catch (error) {
                 console.error("Error sending notification:", error);
-                showAlert("Error sending notification: " + error.message, true);
+                showAlert("❌ Error sending notification: " + error.message, true);
             } finally {
                 loader.style.display = 'none';
             }
@@ -837,10 +1479,10 @@
                     chatId,
                     updatedAt: serverTimestamp()
                 });
-                showToast("Telegram configuration saved successfully!");
+                showToast("✅ Telegram configuration saved successfully!");
             } catch (error) {
                 console.error("Error saving Telegram config:", error);
-                showAlert("Error saving configuration: " + error.message, true);
+                showAlert("❌ Error saving configuration: " + error.message, true);
             } finally {
                 loader.style.display = 'none';
             }
@@ -862,7 +1504,7 @@
                 const botResult = await botResponse.json();
                 
                 if (!botResult.ok) {
-                    showAlert("Bot connection failed: " + botResult.description, true);
+                    showAlert("❌ Bot connection failed: " + botResult.description, true);
                     return;
                 }
                 
@@ -879,18 +1521,18 @@
                 
                 const messageResult = await messageResponse.json();
                 if (messageResult.ok) {
-                    showAlert("Telegram connection successful! Test message sent.");
+                    showAlert("✅ Telegram connection successful! Test message sent.");
                 } else {
-                    showAlert("Failed to send test message: " + messageResult.description, true);
+                    showAlert("❌ Failed to send test message: " + messageResult.description, true);
                 }
             } catch (error) {
-                showAlert("Error testing connection: " + error.message, true);
+                showAlert("❌ Error testing connection: " + error.message, true);
             } finally {
                 loader.style.display = 'none';
             }
         }
 
-        // Settings Functions - UPDATED WITH IPINFO API FIELD
+        // Settings Functions (keep as is)
         async function loadSettings() {
             const page = document.getElementById('settings');
             page.innerHTML = `
@@ -1189,11 +1831,11 @@
             
             try {
                 await setDoc(doc(db, "config", "main"), newConfig, { merge: true });
-                showToast('Settings saved successfully!');
+                showToast('✅ Settings saved successfully!');
                 loadUsers(); // Refresh users to show updated daily ad limit
             } catch (error) {
                 console.error("Error saving settings:", error);
-                showAlert('Error: Could not save settings.', true);
+                showAlert('❌ Error: Could not save settings.', true);
             } finally {
                 loader.style.display = 'none';
             }
@@ -1232,7 +1874,8 @@
                             'website_visit': 'Website Visit',
                             'referral': 'Referral Bonus',
                             'withdrawal': 'Withdrawal',
-                            'admin_adjustment': 'Admin Adjustment'
+                            'admin_adjustment': 'Admin Adjustment',
+                            'game_play': 'Game Play'
                         };
                         
                         const timestamp = history.timestamp?.toDate().toLocaleString() || 'N/A';
@@ -1254,7 +1897,7 @@
                 document.getElementById('user-point-history-modal').style.display = 'flex';
             } catch (error) {
                 console.error("Error loading point history:", error);
-                showAlert("Error loading point history: " + error.message, true);
+                showAlert("❌ Error loading point history: " + error.message, true);
             } finally {
                 loader.style.display = 'none';
             }
@@ -1271,11 +1914,11 @@
                 loader.style.display = 'flex';
                 try {
                     await updateDoc(doc(db, "users", userId), { isBlocked: !isBlocked });
-                    showToast(`User ${isBlocked ? 'unblocked' : 'blocked'} successfully!`);
+                    showToast(`✅ User ${isBlocked ? 'unblocked' : 'blocked'} successfully!`);
                     loadUsers();
                 } catch (error) {
                     console.error("Error updating user:", error);
-                    showAlert("Error updating user status.", true);
+                    showAlert("❌ Error updating user status.", true);
                 } finally {
                     loader.style.display = 'none';
                 }
@@ -1287,14 +1930,14 @@
                 loader.style.display = 'flex';
                 try {
                     await updateDoc(doc(db, "users", userId), { 
-                        dailyAdsWatched: 0,
-                        lastAdDate: new Date().toDateString()
+                        dailyAdCount: 0,
+                        lastAdWatchDate: new Date().toISOString().split('T')[0]
                     });
-                    showToast("Daily ads reset successfully!");
+                    showToast("✅ Daily ads reset successfully!");
                     loadUsers();
                 } catch (error) {
                     console.error("Error resetting daily ads:", error);
-                    showAlert("Error resetting daily ads.", true);
+                    showAlert("❌ Error resetting daily ads.", true);
                 } finally {
                     loader.style.display = 'none';
                 }
@@ -1347,12 +1990,12 @@
                     country: userData.country || 'N/A'
                 });
                 
-                showToast("User points updated successfully!");
+                showToast("✅ User points updated successfully!");
                 closeEditPointsModal();
                 loadUsers();
             } catch (error) {
                 console.error("Error updating user points:", error);
-                showAlert("Error updating user points: " + error.message, true);
+                showAlert("❌ Error updating user points: " + error.message, true);
             } finally {
                 loader.style.display = 'none';
             }
@@ -1405,12 +2048,12 @@
                     }
                     
                     await batch.commit();
-                    showToast(`Withdrawal request ${action} successfully!`);
+                    showToast(`✅ Withdrawal request ${action} successfully!`);
                     loadWithdrawals();
                     loadDashboardData();
                 } catch (error) {
                     console.error("Error processing withdrawal:", error);
-                    showAlert("Error processing withdrawal request: " + error.message, true);
+                    showAlert("❌ Error processing withdrawal request: " + error.message, true);
                 } finally {
                     loader.style.display = 'none';
                 }
@@ -1419,8 +2062,12 @@
 
         // Utility Functions
         function showAlert(message, isError = false) {
-            document.getElementById('alert-message').textContent = message;
-            document.getElementById('custom-alert').classList.remove('hidden');
+            const alertBox = document.getElementById('custom-alert');
+            const msgEl = document.getElementById('alert-message');
+            if (alertBox && msgEl) {
+                msgEl.textContent = message;
+                alertBox.classList.remove('hidden');
+            }
         }
 
         function showConfirm(message, onConfirm) {
@@ -1482,6 +2129,13 @@
         window.viewUserPointHistory = viewUserPointHistory;
         window.closePointHistoryModal = closePointHistoryModal;
         window.testIpinfoApi = testIpinfoApi;
+        
+        // Game Management functions
+        window.editGameSettings = editGameSettings;
+        window.closeEditGameModal = closeEditGameModal;
+        window.saveGameSettings = saveGameSettings;
+        window.saveGlobalGameSettings = saveGlobalGameSettings;
+        window.resetAllGameStats = resetAllGameStats;
     </script>
 </body>
 </html>

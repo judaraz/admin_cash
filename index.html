@@ -1,3 +1,16 @@
+                <div class="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div class="flex items-center">
+                        <i data-lucide="info" class="w-5 h-5 text-blue-600 mr-2"></i>
+                        <p class="text-blue-700">
+                            <strong>Features:</strong> 1) Set Daily Play Limit - Game becomes unplayable after limit reached. 
+                            2) Toggle Game Visibility - Hide/show game in mini-app.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                    <!-- Color Game Card -->
+                    <div class="game-card" id="colorGame-card">
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -150,7 +163,7 @@
         </div>
     </div>
 
-    <!-- Quick Game Settings Modal -->
+    <!-- Quick Game Settings Modal (from reference code) -->
     <div id="quick-game-settings-modal" class="modal-overlay">
         <div class="modal" style="max-width: 450px;">
             <div class="flex justify-between items-center mb-4">
@@ -199,6 +212,66 @@
             <div class="mt-6 flex justify-end space-x-3">
                 <button onclick="closeQuickSettingsModal()" class="btn bg-gray-200 text-gray-800 px-6">Cancel</button>
                 <button onclick="saveQuickGameSettings()" class="btn btn-primary px-6">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit User Points Modal -->
+    <div id="edit-points-modal" class="modal-overlay">
+        <div class="modal">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold">Edit User Points</h3>
+                <button onclick="closeEditPointsModal()" class="text-gray-500 hover:text-gray-700">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="mb-4">
+                <p class="text-gray-600">User: <span id="edit-user-name" class="font-semibold"></span></p>
+                <p class="text-gray-600">Email: <span id="edit-user-email" class="font-semibold"></span></p>
+                <p class="text-gray-600">Current Balance: <span id="edit-current-balance" class="font-semibold"></span></p>
+            </div>
+            <div class="mb-6">
+                <label class="block font-semibold mb-2">New Balance</label>
+                <input type="number" id="new-balance-input" class="input-field" placeholder="Enter new balance">
+            </div>
+            <div class="flex justify-end space-x-2">
+                <button onclick="closeEditPointsModal()" class="btn bg-gray-200 text-gray-800">Cancel</button>
+                <button onclick="saveUserPoints()" class="btn btn-primary">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Point History Modal -->
+    <div id="user-point-history-modal" class="modal-overlay">
+        <div class="modal" style="max-width: 800px;">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold">Point History - <span id="history-user-name"></span></h3>
+                <button onclick="closePointHistoryModal()" class="text-gray-500 hover:text-gray-700">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="mb-4">
+                <p class="text-gray-600">User ID: <span id="history-user-id" class="font-semibold"></span></p>
+                <p class="text-gray-600">Total Points Earned: <span id="total-points-earned" class="font-semibold text-green-600"></span></p>
+            </div>
+            <div class="overflow-y-auto max-h-96">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50 sticky top-0">
+                        <tr>
+                            <th class="px-4 py-2">Date & Time</th>
+                            <th class="px-4 py-2">Task</th>
+                            <th class="px-4 py-2">Points</th>
+                            <th class="px-4 py-2">Country</th>
+                            <th class="px-4 py-2">Details</th>
+                        </tr>
+                    </thead>
+                    <tbody id="user-point-history-body">
+                        <!-- Point history will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="mt-4 flex justify-end">
+                <button onclick="closePointHistoryModal()" class="btn bg-gray-200 text-gray-800">Close</button>
             </div>
         </div>
     </div>
@@ -255,6 +328,8 @@
 
         // DOM Elements
         const loader = document.getElementById('loader');
+        let currentEditingUserId = null;
+        let currentViewingUserId = null;
         let currentEditingGameId = null;
 
         // Initialize on load
@@ -345,7 +420,223 @@
             if (pageId === 'settings') loadSettings();
         }
 
-        // Game Management Functions
+        // Dashboard Functions (keep existing dashboard functions...)
+        async function loadDashboard() {
+            const page = document.getElementById('dashboard');
+            page.innerHTML = `
+                <h1 class="text-3xl font-bold mb-6">Dashboard</h1>
+                <div id="stats-grid" class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div class="stat-card p-6"><h3 class="text-gray-500 text-lg">Total Users</h3><p id="total-users" class="text-4xl font-bold mt-2">0</p></div>
+                    <div class="stat-card p-6"><h3 class="text-gray-500 text-lg">Total Withdrawals</h3><p id="total-withdrawals" class="text-4xl font-bold mt-2">0</p></div>
+                    <div class="stat-card p-6"><h3 class="text-gray-500 text-lg">Pending Withdrawals</h3><p id="pending-withdrawals" class="text-4xl font-bold text-orange-500 mt-2">0</p></div>
+                    <div class="stat-card p-6"><h3 class="text-gray-500 text-lg">Today's Earnings</h3><p id="today-earnings" class="text-4xl font-bold text-green-600 mt-2">0</p></div>
+                </div>
+                <div class="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div>
+                        <h2 class="text-2xl font-bold mb-4">Recent Withdrawals</h2>
+                        <div id="recent-withdrawals" class="bg-white shadow rounded-lg p-4">
+                            Loading...
+                        </div>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold mb-4">Recent Users</h2>
+                        <div id="recent-users" class="bg-white shadow rounded-lg p-4">
+                            Loading...
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-8">
+                    <h2 class="text-2xl font-bold mb-4">Game Statistics</h2>
+                    <div id="game-stats" class="bg-white shadow rounded-lg p-4">
+                        Loading...
+                    </div>
+                </div>
+            `;
+            
+            // Load real-time data
+            loadDashboardData();
+        }
+
+        function loadDashboardData() {
+            // Total Users (real-time)
+            onSnapshot(collection(db, "users"), snap => {
+                document.getElementById('total-users').textContent = snap.size;
+            });
+
+            // Total Withdrawals (real-time)
+            onSnapshot(collection(db, "withdrawals"), snap => {
+                document.getElementById('total-withdrawals').textContent = snap.size;
+            });
+
+            // Pending Withdrawals (real-time)
+            onSnapshot(query(collection(db, "withdrawals"), where("status", "==", "pending")), snap => {
+                document.getElementById('pending-withdrawals').textContent = snap.size;
+            });
+
+            // Load recent data
+            loadRecentWithdrawals();
+            loadRecentUsers();
+            loadTodayEarnings();
+            loadGameStats();
+        }
+
+        async function loadRecentWithdrawals() {
+            const withdrawalsSnap = await getDocs(query(
+                collection(db, "withdrawals"), 
+                orderBy("requestedAt", "desc"), 
+                limit(5)
+            ));
+            
+            let html = `<table class="w-full">
+                <thead><tr><th>User</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead>
+                <tbody>`;
+            
+            if (withdrawalsSnap.empty) {
+                html += `<tr><td colspan="4" class="text-center py-4 text-gray-500">No recent withdrawals</td></tr>`;
+            } else {
+                withdrawalsSnap.forEach(doc => {
+                    const req = doc.data();
+                    const date = req.requestedAt?.toDate().toLocaleDateString() || 'N/A';
+                    const statusClass = req.status === 'approved' ? 'status-approved' : 
+                                      req.status === 'pending' ? 'status-pending' : 'status-rejected';
+                    html += `<tr class="border-b">
+                        <td class="py-2">${req.userName || 'N/A'}</td>
+                        <td class="py-2 font-semibold">${req.amount}</td>
+                        <td class="py-2"><span class="status-badge ${statusClass}">${req.status}</span></td>
+                        <td class="py-2 text-gray-500 text-sm">${date}</td>
+                    </tr>`;
+                });
+            }
+            
+            html += `</tbody></table>`;
+            document.getElementById('recent-withdrawals').innerHTML = html;
+        }
+
+        async function loadRecentUsers() {
+            const usersSnap = await getDocs(query(
+                collection(db, "users"), 
+                orderBy("createdAt", "desc"), 
+                limit(5)
+            ));
+            
+            let html = `<table class="w-full">
+                <thead><tr><th>Name</th><th>Email</th><th>Balance</th><th>Status</th></tr></thead>
+                <tbody>`;
+            
+            if (usersSnap.empty) {
+                html += `<tr><td colspan="4" class="text-center py-4 text-gray-500">No users found</td></tr>`;
+            } else {
+                usersSnap.forEach(doc => {
+                    const user = doc.data();
+                    const isBlocked = user.isBlocked || false;
+                    const statusClass = isBlocked ? 'status-blocked' : 'status-active';
+                    html += `<tr class="border-b">
+                        <td class="py-2">${user.name || 'N/A'}</td>
+                        <td class="py-2">${user.email || 'N/A'}</td>
+                        <td class="py-2 font-semibold">${user.balance || 0}</td>
+                        <td class="py-2"><span class="status-badge ${statusClass}">${isBlocked ? 'Blocked' : 'Active'}</span></td>
+                    </tr>`;
+                });
+            }
+            
+            html += `</tbody></table>`;
+            document.getElementById('recent-users').innerHTML = html;
+        }
+
+        async function loadTodayEarnings() {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const pointHistorySnap = await getDocs(query(
+                collection(db, "pointHistory"),
+                where("timestamp", ">=", today)
+            ));
+            
+            let totalEarnings = 0;
+            pointHistorySnap.forEach(doc => {
+                const history = doc.data();
+                if (history.points > 0) {
+                    totalEarnings += history.points;
+                }
+            });
+            
+            document.getElementById('today-earnings').textContent = totalEarnings;
+        }
+
+        async function loadGameStats() {
+            try {
+                // Get game configuration
+                const gamesSnap = await getDoc(doc(db, "config", "games"));
+                const gamesConfig = gamesSnap.exists() ? gamesSnap.data() : {};
+                
+                // Get today's game play data
+                const today = new Date().toISOString().split('T')[0];
+                const todayStats = gamesConfig.dailyStats?.[today] || {};
+                
+                let html = '<div class="grid grid-cols-1 md:grid-cols-3 gap-4">';
+                
+                // Games list
+                const games = [
+                    { id: 'colorGame', name: 'Color Game', icon: 'palette', color: 'bg-purple-500' },
+                    { id: 'watchVideo', name: 'Watch Video', icon: 'video', color: 'bg-blue-500' },
+                    { id: 'ludoDice', name: 'Ludo Dice', icon: 'dice-5', color: 'bg-green-500' }
+                ];
+                
+                games.forEach(game => {
+                    const gameData = gamesConfig[game.id] || {};
+                    const gameStats = todayStats[game.id] || { playCount: 0, totalPlays: 0, userCount: 0 };
+                    const isVisible = gameData.visible !== false;
+                    
+                    html += `
+                        <div class="game-card">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="flex items-center">
+                                    <div class="${game.color} text-white p-2 rounded-lg mr-3">
+                                        <i data-lucide="${game.icon}" class="w-5 h-5"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-bold">${game.name}</h3>
+                                        <p class="text-sm text-gray-500">${isVisible ? 'Visible' : 'Hidden'}</p>
+                                    </div>
+                                </div>
+                                <span class="status-badge ${isVisible ? 'status-visible' : 'status-hidden'}">
+                                    ${isVisible ? 'Visible' : 'Hidden'}
+                                </span>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-3 mt-4">
+                                <div>
+                                    <p class="text-sm text-gray-500">Today's Plays</p>
+                                    <p class="font-bold text-lg">${gameStats.playCount || 0}</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-500">Total Users</p>
+                                    <p class="font-bold text-lg">${gameStats.userCount || 0}</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-500">Daily Limit</p>
+                                    <p class="font-bold text-lg">${gameData.dailyPlayLimit > 0 ? `${gameData.dailyPlayLimit} plays` : 'Unlimited'}</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-500">Reward</p>
+                                    <p class="font-bold text-lg">${gameData.rewardPerPlay || 0} pts</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+                document.getElementById('game-stats').innerHTML = html;
+                lucide.createIcons();
+            } catch (error) {
+                console.error("Error loading game stats:", error);
+                document.getElementById('game-stats').innerHTML = 
+                    `<p class="text-center text-gray-500">Error loading game statistics</p>`;
+            }
+        }
+
+        // ===== ENHANCED GAME MANAGEMENT (from reference code) =====
         async function loadGames() {
             const page = document.getElementById('games');
             page.innerHTML = `
@@ -520,9 +811,18 @@
                         </div>
                     </div>
                 </div>
+                
+                <!-- Game Statistics -->
+                <div class="bg-white p-6 rounded-lg shadow mt-6">
+                    <h2 class="text-xl font-bold mb-4">Game Statistics</h2>
+                    <div id="games-stats-table" class="overflow-x-auto">
+                        Loading...
+                    </div>
+                </div>
             `;
             
             await loadGamesData();
+            await loadGamesStats();
         }
 
         async function loadGamesData() {
@@ -537,11 +837,16 @@
                     { id: 'ludoDice', name: 'Ludo Dice', icon: 'dice-5', color: 'bg-green-500' }
                 ];
                 
+                // Get today's stats
+                const today = new Date().toISOString().split('T')[0];
+                const todayStats = gamesConfig.dailyStats?.[today] || {};
+                
                 games.forEach(game => {
                     const gameConfig = gamesConfig[game.id] || {};
                     const isVisible = gameConfig.visible !== false;
                     const dailyPlayLimit = gameConfig.dailyPlayLimit || 0;
                     const rewardPerPlay = gameConfig.rewardPerPlay || 0;
+                    const todayGameStats = todayStats[game.id] || { playCount: 0 };
                     
                     // Update status badge
                     const statusEl = document.getElementById(`${game.id}-status`);
@@ -561,6 +866,12 @@
                     if (rewardEl) {
                         rewardEl.textContent = `${rewardPerPlay} points`;
                     }
+                    
+                    // Update today's plays
+                    const todayPlaysEl = document.getElementById(`${game.id}-today-plays`);
+                    if (todayPlaysEl) {
+                        todayPlaysEl.textContent = todayGameStats.playCount || 0;
+                    }
                 });
                 
                 lucide.createIcons();
@@ -570,7 +881,7 @@
             }
         }
 
-        // Quick Game Settings Functions
+        // Quick Game Settings Functions (from reference code)
         function openQuickSettings(gameId) {
             currentEditingGameId = gameId;
             
@@ -655,6 +966,10 @@
                 
                 // Refresh displays
                 await loadGamesData();
+                await loadGamesStats();
+                if (document.getElementById('dashboard').classList.contains('active')) {
+                    loadGameStats();
+                }
                 
             } catch (error) {
                 console.error("Error saving game settings:", error);
@@ -664,7 +979,7 @@
             }
         }
 
-        // Global Controls Functions
+        // Global Controls Functions (from reference code)
         async function applyGlobalPlayLimit() {
             const limit = parseInt(document.getElementById('global-play-limit').value) || 0;
             
@@ -693,6 +1008,10 @@
                     
                     showToast(`✅ Daily play limit of ${limit} applied to all games!`);
                     await loadGamesData();
+                    await loadGamesStats();
+                    if (document.getElementById('dashboard').classList.contains('active')) {
+                        loadGameStats();
+                    }
                     
                 } catch (error) {
                     console.error("Error applying global limit:", error);
@@ -731,6 +1050,10 @@
                     
                     showToast(`✅ Reward of ${reward} points applied to all games!`);
                     await loadGamesData();
+                    await loadGamesStats();
+                    if (document.getElementById('dashboard').classList.contains('active')) {
+                        loadGameStats();
+                    }
                     
                 } catch (error) {
                     console.error("Error applying global reward:", error);
@@ -762,6 +1085,10 @@
                     
                     showToast("✅ All games are now visible!");
                     await loadGamesData();
+                    await loadGamesStats();
+                    if (document.getElementById('dashboard').classList.contains('active')) {
+                        loadGameStats();
+                    }
                     
                 } catch (error) {
                     console.error("Error showing all games:", error);
@@ -793,6 +1120,10 @@
                     
                     showToast("✅ All games are now hidden!");
                     await loadGamesData();
+                    await loadGamesStats();
+                    if (document.getElementById('dashboard').classList.contains('active')) {
+                        loadGameStats();
+                    }
                     
                 } catch (error) {
                     console.error("Error hiding all games:", error);
@@ -807,6 +1138,7 @@
             loader.style.display = 'flex';
             try {
                 await loadGamesData();
+                await loadGamesStats();
                 showToast("✅ All game settings synchronized!");
             } catch (error) {
                 console.error("Error syncing game settings:", error);
@@ -835,7 +1167,10 @@
                     await setDoc(gameRef, updateData);
                     
                     showToast("✅ All game statistics reset successfully!");
-                    
+                    await loadGamesStats();
+                    if (document.getElementById('dashboard').classList.contains('active')) {
+                        loadGameStats();
+                    }
                 } catch (error) {
                     console.error("Error resetting game stats:", error);
                     showAlert("❌ Error resetting game statistics", true);
@@ -845,121 +1180,662 @@
             });
         }
 
-        // Settings Functions - FIXED VERSION
+        async function loadGamesStats() {
+            try {
+                const gamesSnap = await getDoc(doc(db, "config", "games"));
+                const gamesConfig = gamesSnap.exists() ? gamesSnap.data() : {};
+                
+                // Get today's stats
+                const today = new Date().toISOString().split('T')[0];
+                const todayStats = gamesConfig.dailyStats?.[today] || {};
+                
+                // Get all time stats
+                const allTimeStats = gamesConfig.allTimeStats || {};
+                
+                let html = `<table class="w-full text-sm text-left text-gray-600">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3">Game</th>
+                            <th class="px-6 py-3">Today's Plays</th>
+                            <th class="px-6 py-3">Today's Users</th>
+                            <th class="px-6 py-3">Today's Points</th>
+                            <th class="px-6 py-3">Total Plays</th>
+                            <th class="px-6 py-3">Total Users</th>
+                            <th class="px-6 py-3">Total Points</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+                
+                const games = [
+                    { id: 'colorGame', name: 'Color Game' },
+                    { id: 'watchVideo', name: 'Watch Video' },
+                    { id: 'ludoDice', name: 'Ludo Dice' }
+                ];
+                
+                let todayTotalPlays = 0;
+                let todayTotalUsers = 0;
+                let todayTotalPoints = 0;
+                let allTimeTotalPlays = 0;
+                let allTimeTotalUsers = 0;
+                let allTimeTotalPoints = 0;
+                
+                games.forEach(game => {
+                    const todayGameStats = todayStats[game.id] || { playCount: 0, userCount: 0 };
+                    const allTimeGameStats = allTimeStats[game.id] || { playCount: 0, userCount: 0 };
+                    const gameConfig = gamesConfig[game.id] || {};
+                    const rewardPerPlay = gameConfig.rewardPerPlay || 0;
+                    
+                    const todayPoints = todayGameStats.playCount * rewardPerPlay;
+                    const allTimePoints = allTimeGameStats.playCount * rewardPerPlay;
+                    
+                    todayTotalPlays += todayGameStats.playCount;
+                    todayTotalUsers += todayGameStats.userCount;
+                    todayTotalPoints += todayPoints;
+                    allTimeTotalPlays += allTimeGameStats.playCount;
+                    allTimeTotalUsers += allTimeGameStats.userCount;
+                    allTimeTotalPoints += allTimePoints;
+                    
+                    html += `<tr class="bg-white border-b">
+                        <td class="px-6 py-4 font-semibold">${game.name}</td>
+                        <td class="px-6 py-4">${todayGameStats.playCount}</td>
+                        <td class="px-6 py-4">${todayGameStats.userCount}</td>
+                        <td class="px-6 py-4">${todayPoints}</td>
+                        <td class="px-6 py-4">${allTimeGameStats.playCount}</td>
+                        <td class="px-6 py-4">${allTimeGameStats.userCount}</td>
+                        <td class="px-6 py-4">${allTimePoints}</td>
+                    </tr>`;
+                });
+                
+                // Add totals row
+                html += `<tr class="bg-gray-50 font-bold">
+                    <td class="px-6 py-4">TOTAL</td>
+                    <td class="px-6 py-4">${todayTotalPlays}</td>
+                    <td class="px-6 py-4">${todayTotalUsers}</td>
+                    <td class="px-6 py-4">${todayTotalPoints}</td>
+                    <td class="px-6 py-4">${allTimeTotalPlays}</td>
+                    <td class="px-6 py-4">${allTimeTotalUsers}</td>
+                    <td class="px-6 py-4">${allTimeTotalPoints}</td>
+                </tr>`;
+                
+                html += `</tbody></table>`;
+                document.getElementById('games-stats-table').innerHTML = html;
+            } catch (error) {
+                console.error("Error loading game stats:", error);
+                document.getElementById('games-stats-table').innerHTML = 
+                    `<p class="text-center text-gray-500">Error loading game statistics</p>`;
+            }
+        }
+
+        // Users Functions (keep existing users functions...)
+        async function loadUsers() {
+            const page = document.getElementById('users');
+            page.innerHTML = `
+                <div class="flex justify-between items-center mb-6">
+                    <h1 class="text-3xl font-bold">User Management</h1>
+                    <div class="flex space-x-2">
+                        <input type="text" id="user-search" placeholder="Search users..." class="input-field w-64">
+                        <button onclick="searchUsers()" class="btn btn-primary">Search</button>
+                    </div>
+                </div>
+                <div class="bg-white shadow rounded-lg p-4">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left text-gray-600">
+                            <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3">Name</th>
+                                    <th class="px-6 py-3">Email</th>
+                                    <th class="px-6 py-3">Balance</th>
+                                    <th class="px-6 py-3">Country</th>
+                                    <th class="px-6 py-3">Daily Ads</th>
+                                    <th class="px-6 py-3">Status</th>
+                                    <th class="px-6 py-3">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-table-body">Loading...</tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+            
+            await loadUsersData();
+            
+            // Add search event listener
+            document.getElementById('user-search').addEventListener('keyup', (e) => {
+                if (e.key === 'Enter') searchUsers();
+            });
+        }
+
+        async function loadUsersData(searchTerm = '') {
+            const configSnap = await getDoc(doc(db, "config", "main"));
+            const config = configSnap.exists() ? configSnap.data() : {};
+            const dailyAdLimit = config.dailyAdLimit || 100;
+            
+            const usersSnap = await getDocs(collection(db, "users"));
+            let tableHTML = '';
+            
+            usersSnap.forEach(doc => {
+                const user = doc.data();
+                const userId = doc.id;
+                const isBlocked = user.isBlocked || false;
+                const userEmail = user.email || '';
+                const userName = user.name || 'N/A';
+                
+                // Filter by search term
+                if (searchTerm && 
+                    !userName.toLowerCase().includes(searchTerm.toLowerCase()) && 
+                    !userEmail.toLowerCase().includes(searchTerm.toLowerCase())) {
+                    return;
+                }
+                
+                const dailyAdsWatched = user.dailyAdCount || 0;
+                const country = user.country || 'N/A';
+                
+                tableHTML += `<tr class="bg-white border-b hover:bg-gray-50">
+                    <td class="px-6 py-4">${userName}</td>
+                    <td class="px-6 py-4">${userEmail}</td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center space-x-2">
+                            <span class="font-semibold">${user.balance || 0}</span>
+                            <button onclick="openEditPointsModal('${userId}', '${userName}', '${userEmail}', ${user.balance || 0})" 
+                                    class="btn btn-sm btn-warning">Edit</button>
+                            <button onclick="viewUserPointHistory('${userId}', '${userName}')" 
+                                    class="view-points-btn btn-sm">View Points</button>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">${country}</td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center space-x-2">
+                            <span class="font-semibold ${dailyAdsWatched >= dailyAdLimit ? 'text-red-600' : 'text-green-600'}">
+                                ${dailyAdsWatched}/${dailyAdLimit}
+                            </span>
+                            ${dailyAdsWatched >= dailyAdLimit ? 
+                                '<span class="text-xs text-red-500">Limit Reached</span>' : ''}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="status-badge ${isBlocked ? 'status-blocked' : 'status-active'}">
+                            ${isBlocked ? 'Blocked' : 'Active'}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex space-x-2">
+                            <button onclick="toggleUserBlock('${userId}', ${isBlocked})" 
+                                    class="btn btn-sm ${isBlocked ? 'btn-success' : 'btn-danger'}">
+                                ${isBlocked ? 'Unblock' : 'Block'}
+                            </button>
+                            <button onclick="resetDailyAds('${userId}')" 
+                                    class="btn btn-sm btn-secondary">
+                                Reset Ads
+                            </button>
+                        </div>
+                    </td>
+                </tr>`;
+            });
+            
+            if (!tableHTML) {
+                tableHTML = `<tr><td colspan="7" class="text-center py-4 text-gray-500">No users found</td></tr>`;
+            }
+            
+            document.getElementById('users-table-body').innerHTML = tableHTML;
+        }
+
+        function searchUsers() {
+            const searchTerm = document.getElementById('user-search').value;
+            loadUsersData(searchTerm);
+        }
+
+        // Withdrawals Functions (keep existing withdrawals functions...)
+        async function loadWithdrawals() {
+            const page = document.getElementById('withdrawals');
+            page.innerHTML = `
+                <h1 class="text-3xl font-bold mb-6">Withdrawal Requests</h1>
+                <div class="mb-4 flex space-x-4">
+                    <button onclick="filterWithdrawals('all')" class="btn btn-primary">All</button>
+                    <button onclick="filterWithdrawals('pending')" class="btn btn-warning">Pending</button>
+                    <button onclick="filterWithdrawals('approved')" class="btn btn-success">Approved</button>
+                    <button onclick="filterWithdrawals('rejected')" class="btn btn-danger">Rejected</button>
+                </div>
+                <div class="bg-white shadow rounded-lg p-4">
+                    <div class="overflow-x-auto">
+                        <div id="withdrawals-table-container">Loading...</div>
+                    </div>
+                </div>
+            `;
+            
+            await loadWithdrawalsData('all');
+        }
+
+        async function loadWithdrawalsData(filter = 'all') {
+            let q;
+            if (filter === 'all') {
+                q = query(collection(db, "withdrawals"), orderBy("requestedAt", "desc"));
+            } else {
+                q = query(collection(db, "withdrawals"), where("status", "==", filter), orderBy("requestedAt", "desc"));
+            }
+            
+            const withdrawalsSnap = await getDocs(q);
+            
+            if (withdrawalsSnap.empty) {
+                document.getElementById('withdrawals-table-container').innerHTML = 
+                    `<p class="text-center p-4 text-gray-500">No withdrawal requests found.</p>`;
+                return;
+            }
+
+            let tableHTML = `<table class="w-full text-sm text-left text-gray-600">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3">User</th>
+                        <th class="px-6 py-3">Amount</th>
+                        <th class="px-6 py-3">Method</th>
+                        <th class="px-6 py-3">Details</th>
+                        <th class="px-6 py-3">Country</th>
+                        <th class="px-6 py-3">Requested At</th>
+                        <th class="px-6 py-3">Status</th>
+                        <th class="px-6 py-3">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+            
+            withdrawalsSnap.forEach(doc => {
+                const req = doc.data();
+                const requestedDate = req.requestedAt?.toDate().toLocaleString() || 'N/A';
+                const statusClass = req.status === 'approved' ? 'status-approved' : 
+                                  req.status === 'pending' ? 'status-pending' : 'status-rejected';
+                const country = req.country || 'N/A';
+                
+                tableHTML += `<tr class="bg-white border-b">
+                    <td class="px-6 py-4">
+                        <div class="flex items-center space-x-2">
+                            <span>${req.userName || 'N/A'}</span>
+                            <button onclick="viewUserPointHistory('${req.userId}', '${req.userName}')" 
+                                    class="view-points-btn btn-sm">View Points</button>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 font-semibold">${req.amount}</td>
+                    <td class="px-6 py-4">${req.method}</td>
+                    <td class="px-6 py-4 truncate max-w-xs" title="${req.paymentDetail}">${req.paymentDetail || 'N/A'}</td>
+                    <td class="px-6 py-4">${country}</td>
+                    <td class="px-6 py-4 text-gray-500 text-sm">${requestedDate}</td>
+                    <td class="px-6 py-4"><span class="status-badge ${statusClass}">${req.status}</span></td>
+                    <td class="px-6 py-4">
+                        ${req.status === 'pending' ? `
+                        <div class="flex space-x-2">
+                            <button onclick="processWithdrawal('${doc.id}', 'approved')" class="btn-success text-xs px-2 py-1 rounded">Approve</button>
+                            <button onclick="processWithdrawal('${doc.id}', 'rejected')" class="btn-danger text-xs px-2 py-1 rounded">Reject</button>
+                        </div>
+                        ` : '—'}
+                    </td>
+                </tr>`;
+            });
+            
+            tableHTML += `</tbody></table>`;
+            document.getElementById('withdrawals-table-container').innerHTML = tableHTML;
+        }
+
+        function filterWithdrawals(status) {
+            loadWithdrawalsData(status);
+        }
+
+        // Notifications Functions (keep existing notifications functions...)
+        function loadNotifications() {
+            const page = document.getElementById('notifications');
+            page.innerHTML = `
+                <h1 class="text-3xl font-bold mb-6">Send Notification</h1>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="stat-card p-6">
+                        <h2 class="text-xl font-bold mb-4">Send to All Users</h2>
+                        <div class="mb-4">
+                            <label for="notification-title" class="block font-semibold mb-2">Title</label>
+                            <input type="text" id="notification-title" class="input-field" placeholder="Notification title">
+                        </div>
+                        <div class="mb-6">
+                            <label for="notification-message" class="block font-semibold mb-2">Message</label>
+                            <textarea id="notification-message" rows="4" class="input-field" placeholder="Notification message"></textarea>
+                        </div>
+                        <button id="send-notification-btn" class="btn btn-primary w-full">Send to All Users</button>
+                    </div>
+                    
+                    <div class="stat-card p-6">
+                        <h2 class="text-xl font-bold mb-4">Telegram Bot Configuration</h2>
+                        <div class="mb-4">
+                            <label for="telegram-bot-token" class="block font-semibold mb-2">Bot Token</label>
+                            <input type="text" id="telegram-bot-token" class="input-field" placeholder="Enter bot token">
+                        </div>
+                        <div class="mb-6">
+                            <label for="telegram-chat-id" class="block font-semibold mb-2">Chat ID</label>
+                            <input type="text" id="telegram-chat-id" class="input-field" placeholder="Enter chat ID">
+                        </div>
+                        <button onclick="testTelegramConnection()" class="btn btn-warning w-full mb-2">Test Connection</button>
+                        <button onclick="saveTelegramConfig()" class="btn btn-success w-full">Save Configuration</button>
+                    </div>
+                </div>
+                
+                <div class="mt-8">
+                    <h2 class="text-2xl font-bold mb-4">Notification History</h2>
+                    <div id="notification-history" class="bg-white shadow rounded-lg p-4">
+                        Loading...
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('send-notification-btn').addEventListener('click', sendNotification);
+            loadNotificationHistory();
+            loadTelegramConfig();
+        }
+
+        async function sendNotification() {
+            const title = document.getElementById('notification-title').value;
+            const message = document.getElementById('notification-message').value;
+            
+            if (!title || !message) {
+                showAlert("Please enter both title and message.");
+                return;
+            }
+            
+            loader.style.display = 'flex';
+            try {
+                // Save to Firebase
+                await addDoc(collection(db, "notifications"), {
+                    title,
+                    message,
+                    createdAt: serverTimestamp(),
+                    sentToAll: true
+                });
+                
+                // Send to Telegram if configured
+                await sendTelegramNotification(title, message);
+                
+                showToast("✅ Notification sent successfully!");
+                document.getElementById('notification-title').value = '';
+                document.getElementById('notification-message').value = '';
+                loadNotificationHistory();
+            } catch (error) {
+                console.error("Error sending notification:", error);
+                showAlert("❌ Error sending notification: " + error.message, true);
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
+
+        async function sendTelegramNotification(title, message) {
+            const configSnap = await getDoc(doc(db, "config", "telegram"));
+            if (!configSnap.exists()) return;
+            
+            const config = configSnap.data();
+            if (!config.botToken || !config.chatId) return;
+            
+            const telegramMessage = `*${title}*\n\n${message}`;
+            
+            try {
+                const response = await fetch(`https://api.telegram.org/bot${config.botToken}/sendMessage`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        chat_id: config.chatId,
+                        text: telegramMessage,
+                        parse_mode: 'Markdown'
+                    })
+                });
+                
+                const result = await response.json();
+                if (!result.ok) {
+                    console.error("Telegram API error:", result);
+                    throw new Error(result.description || 'Telegram API error');
+                }
+            } catch (error) {
+                console.error("Error sending to Telegram:", error);
+                throw error;
+            }
+        }
+
+        async function loadNotificationHistory() {
+            const notificationsSnap = await getDocs(query(
+                collection(db, "notifications"), 
+                orderBy("createdAt", "desc"), 
+                limit(10)
+            ));
+            
+            let html = `<table class="w-full">
+                <thead><tr><th>Title</th><th>Message</th><th>Sent At</th></tr></thead>
+                <tbody>`;
+            
+            if (notificationsSnap.empty) {
+                html += `<tr><td colspan="3" class="text-center py-4 text-gray-500">No notifications sent yet</td></tr>`;
+            } else {
+                notificationsSnap.forEach(doc => {
+                    const notification = doc.data();
+                    const sentAt = notification.createdAt?.toDate().toLocaleString() || 'N/A';
+                    html += `<tr class="border-b">
+                        <td class="py-2 font-semibold">${notification.title}</td>
+                        <td class="py-2">${notification.message}</td>
+                        <td class="py-2 text-gray-500 text-sm">${sentAt}</td>
+                    </tr>`;
+                });
+            }
+            
+            html += `</tbody></table>`;
+            document.getElementById('notification-history').innerHTML = html;
+        }
+
+        async function loadTelegramConfig() {
+            const configSnap = await getDoc(doc(db, "config", "telegram"));
+            if (configSnap.exists()) {
+                const config = configSnap.data();
+                document.getElementById('telegram-bot-token').value = config.botToken || '';
+                document.getElementById('telegram-chat-id').value = config.chatId || '';
+            }
+        }
+
+        async function saveTelegramConfig() {
+            const botToken = document.getElementById('telegram-bot-token').value;
+            const chatId = document.getElementById('telegram-chat-id').value;
+            
+            if (!botToken || !chatId) {
+                showAlert("Please enter both Bot Token and Chat ID.");
+                return;
+            }
+            
+            loader.style.display = 'flex';
+            try {
+                await setDoc(doc(db, "config", "telegram"), {
+                    botToken,
+                    chatId,
+                    updatedAt: serverTimestamp()
+                });
+                showToast("✅ Telegram configuration saved successfully!");
+            } catch (error) {
+                console.error("Error saving Telegram config:", error);
+                showAlert("❌ Error saving configuration: " + error.message, true);
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
+
+        async function testTelegramConnection() {
+            const botToken = document.getElementById('telegram-bot-token').value;
+            const chatId = document.getElementById('telegram-chat-id').value;
+            
+            if (!botToken || !chatId) {
+                showAlert("Please enter both Bot Token and Chat ID to test.");
+                return;
+            }
+            
+            loader.style.display = 'flex';
+            try {
+                // Test bot token
+                const botResponse = await fetch(`https://api.telegram.org/bot${botToken}/getMe`);
+                const botResult = await botResponse.json();
+                
+                if (!botResult.ok) {
+                    showAlert("❌ Bot connection failed: " + botResult.description, true);
+                    return;
+                }
+                
+                // Test sending message
+                const messageResponse = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: chatId,
+                        text: "✅ Test message from CashReward Admin Panel",
+                        parse_mode: 'Markdown'
+                    })
+                });
+                
+                const messageResult = await messageResponse.json();
+                if (messageResult.ok) {
+                    showAlert("✅ Telegram connection successful! Test message sent.");
+                } else {
+                    showAlert("❌ Failed to send test message: " + messageResult.description, true);
+                }
+            } catch (error) {
+                showAlert("❌ Error testing connection: " + error.message, true);
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
+
+        // Settings Functions (keep existing settings functions...)
         async function loadSettings() {
             const page = document.getElementById('settings');
             page.innerHTML = `
                 <h1 class="text-3xl font-bold mb-6">App Settings</h1>
-                <div class="space-y-6">
-                    <!-- General Settings -->
-                    <div class="settings-card">
-                        <h2 class="text-xl font-bold mb-4">General Settings</h2>
-                        <div class="settings-grid">
+                <div class="space-y-8">
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <h2 class="text-xl font-bold mb-4">General & Payment</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label class="block font-semibold mb-2">Minimum Withdrawal (Coins)</label>
-                                <input type="number" id="minWithdrawal" class="input-field" placeholder="1000">
+                                <label class="font-semibold">Min Withdrawal (Coins)</label>
+                                <input type="number" id="minWithdrawal" class="input-field">
                             </div>
                             <div>
-                                <label class="block font-semibold mb-2">Daily Ad Watch Limit</label>
+                                <label class="font-semibold">Daily Ad Watch Limit</label>
                                 <input type="number" id="dailyAdLimit" class="input-field" value="100">
+                                <p class="text-sm text-gray-500 mt-1">Maximum ads a user can watch per day</p>
                             </div>
                             <div>
-                                <label class="block font-semibold mb-2">Ad Watch Reward (Points)</label>
-                                <input type="number" id="adWatchReward" class="input-field" placeholder="50">
+                                <label class="font-semibold">Ad Watch Reward</label>
+                                <input type="number" id="adWatchReward" class="input-field">
                             </div>
                             <div>
-                                <label class="block font-semibold mb-2">Color Game Reward (Points)</label>
-                                <input type="number" id="colorGameReward" class="input-field" placeholder="100">
+                                <label class="font-semibold">Color Game Reward</label>
+                                <input type="number" id="colorGameReward" class="input-field">
                             </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Payment Settings -->
-                    <div class="settings-card">
-                        <h2 class="text-xl font-bold mb-4">Payment Settings</h2>
-                        <div class="settings-grid">
                             <div>
-                                <label class="block font-semibold mb-2">Coin Conversion</label>
+                                <label class="font-semibold">Coin Value</label>
                                 <div class="flex items-center space-x-2">
-                                    <input type="number" id="coinValueCoins" class="input-field" placeholder="1000">
-                                    <span class="text-gray-500">coins =</span>
-                                    <input type="number" id="coinValueInr" class="input-field" placeholder="10">
-                                    <span class="text-gray-500">₹</span>
+                                    <input type="number" id="coinValueCoins" class="input-field" placeholder="Coins">
+                                    <span class="text-gray-500">=</span>
+                                    <input type="number" id="coinValueInr" class="input-field" placeholder="₹ INR">
                                 </div>
                             </div>
                             <div>
-                                <label class="block font-semibold mb-2">Payment Methods</label>
+                                <label class="font-semibold">Payment Methods (comma separated)</label>
                                 <input type="text" id="paymentMethods" class="input-field" placeholder="UPI, Paytm, PhonePe">
-                                <p class="text-sm text-gray-500 mt-1">Comma separated list</p>
                             </div>
                         </div>
                     </div>
                     
-                    <!-- Referral Settings -->
-                    <div class="settings-card">
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <h2 class="text-xl font-bold mb-4">IP Geolocation & Country Restrictions</h2>
+                        <div class="mb-4">
+                            <label class="font-semibold">IPinfo API Token</label>
+                            <div class="flex items-center space-x-2">
+                                <input type="text" id="ipinfoApiToken" class="input-field" placeholder="Enter IPinfo API token">
+                                <button onclick="testIpinfoApi()" class="btn btn-secondary">Test API</button>
+                            </div>
+                            <p class="text-sm text-gray-500 mt-1">
+                                Leave blank to disable country detection. Get free token from 
+                                <a href="https://ipinfo.io/signup" target="_blank" class="text-blue-500 hover:underline">ipinfo.io/signup</a>
+                            </p>
+                        </div>
+                        <div class="mb-4">
+                            <label class="font-semibold">Allowed Countries (comma separated, empty means all allowed)</label>
+                            <input type="text" id="allowedCountries" class="input-field" placeholder="bd, in, pk, us, uk">
+                            <p class="text-sm text-gray-500 mt-1">
+                                Enter country codes separated by commas. 
+                                <span class="font-semibold text-blue-600">If both API token and this field are empty, all countries will be allowed.</span>
+                            </p>
+                        </div>
+                        <div class="mb-4">
+                            <label class="font-semibold">Blocked Country Message</label>
+                            <textarea id="blockedCountryMessage" class="input-field h-24" placeholder="Message shown to users from blocked countries"></textarea>
+                        </div>
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <h3 class="font-semibold text-blue-800 mb-2">How Country Restrictions Work:</h3>
+                            <ul class="list-disc list-inside text-sm text-blue-700 space-y-1">
+                                <li>If API token is empty → Country detection is disabled</li>
+                                <li>If allowed countries list is empty → All countries are allowed</li>
+                                <li>If both are empty → All countries are allowed (no restrictions)</li>
+                                <li>If API token exists and allowed countries list has values → Only listed countries allowed</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-xl font-bold">Website Visit Management</h2>
+                            <button onclick="resetWebsiteVisitHistory()" class="btn btn-danger">Reset All History</button>
+                        </div>
+                        <p class="text-sm text-gray-500 mb-4">Configure websites for "Visit & Earn" section and reset visit history.</p>
+                        
+                        <div id="websites-to-visit-list" class="space-y-3 mb-4">
+                            <!-- Websites will be loaded here -->
+                        </div>
+                        
+                        <button onclick="addNewWebsite()" class="btn btn-primary mb-4">+ Add New Website</button>
+                        <button onclick="saveWebsiteConfig()" class="btn btn-success ml-2">Save Websites</button>
+                        
+                        <div class="mt-4 text-sm text-gray-600">
+                            <p><strong>Field descriptions:</strong></p>
+                            <ul class="list-disc pl-5 mt-2">
+                                <li><strong>Name:</strong> Website display name (e.g., Google)</li>
+                                <li><strong>Link:</strong> Full URL (e.g., https://www.google.com)</li>
+                                <li><strong>Reward:</strong> Points to award (e.g., 10)</li>
+                                <li><strong>Timer:</strong> Seconds user must wait on site (e.g., 30)</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <h2 class="text-xl font-bold mb-4">Special Ad Click Task</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="font-semibold">Show after # Ads</label>
+                                <input type="number" id="watchAdSpecialTaskCount" class="input-field">
+                            </div>
+                            <div>
+                                <label class="font-semibold">Task Reward</label>
+                                <input type="number" id="watchAdSpecialTaskReward" class="input-field">
+                            </div>
+                            <div>
+                                <label class="font-semibold">Wait Timer (seconds)</label>
+                                <input type="number" id="watchAdSpecialTaskTimer" class="input-field">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white p-6 rounded-lg shadow">
                         <h2 class="text-xl font-bold mb-4">Referral System</h2>
-                        <div class="settings-grid">
-                            <div>
-                                <label class="block font-semibold mb-2">Referral Bonus (Points)</label>
-                                <input type="number" id="referralBonus" class="input-field" placeholder="100">
-                            </div>
-                            <div>
-                                <label class="block font-semibold mb-2">Referral Rules</label>
-                                <textarea id="referralRules" class="input-field h-32" placeholder="One rule per line"></textarea>
-                            </div>
-                            <div class="col-span-2">
-                                <label class="block font-semibold mb-2">Referral Share Text</label>
-                                <textarea id="referralShareText" class="input-field h-24" placeholder="Use {CODE} for referral code and {APP_LINK} for app link"></textarea>
-                            </div>
+                        <div class="mb-4">
+                            <label class="font-semibold">Referral Bonus</label>
+                                <input type="number" id="referralBonus" class="input-field">
                         </div>
-                    </div>
-                    
-                    <!-- Special Tasks -->
-                    <div class="settings-card">
-                        <h2 class="text-xl font-bold mb-4">Special Ad Task</h2>
-                        <div class="settings-grid">
-                            <div>
-                                <label class="block font-semibold mb-2">Show after # of Ads</label>
-                                <input type="number" id="watchAdSpecialTaskCount" class="input-field" placeholder="10">
-                            </div>
-                            <div>
-                                <label class="block font-semibold mb-2">Task Reward (Points)</label>
-                                <input type="number" id="watchAdSpecialTaskReward" class="input-field" placeholder="100">
-                            </div>
-                            <div>
-                                <label class="block font-semibold mb-2">Wait Timer (Seconds)</label>
-                                <input type="number" id="watchAdSpecialTaskTimer" class="input-field" placeholder="60">
-                            </div>
+                        <div class="mb-4">
+                            <label class="font-semibold">Referral Rules (one per line)</label>
+                            <textarea id="referralRules" class="input-field h-24"></textarea>
                         </div>
-                    </div>
-                    
-                    <!-- Country Restrictions -->
-                    <div class="settings-card">
-                        <h2 class="text-xl font-bold mb-4">Country Restrictions</h2>
-                        <div class="space-y-4">
-                            <div>
-                                <label class="block font-semibold mb-2">IPinfo API Token</label>
-                                <input type="text" id="ipinfoApiToken" class="input-field" placeholder="Enter token for country detection">
-                                <p class="text-sm text-gray-500 mt-1">Leave empty to disable country detection</p>
-                            </div>
-                            <div>
-                                <label class="block font-semibold mb-2">Allowed Countries</label>
-                                <input type="text" id="allowedCountries" class="input-field" placeholder="in, us, uk, ca, au (comma separated)">
-                                <p class="text-sm text-gray-500 mt-1">Leave empty to allow all countries</p>
-                            </div>
-                            <div>
-                                <label class="block font-semibold mb-2">Blocked Country Message</label>
-                                <textarea id="blockedCountryMessage" class="input-field h-20" placeholder="Sorry, this app is not available in your country."></textarea>
-                            </div>
+                        <div>
+                            <label class="font-semibold">Share Text ({CODE} & {APP_LINK})</label>
+                            <textarea id="referralShareText" class="input-field h-24"></textarea>
                         </div>
                     </div>
                 </div>
-                
-                <div class="mt-8 flex justify-center">
-                    <button onclick="saveAllSettings()" class="btn btn-primary px-8 py-3 text-lg">
-                        <i data-lucide="save" class="w-5 h-5 mr-2"></i> Save All Settings
-                    </button>
-                </div>
+                <button onclick="saveAllSettings()" class="btn btn-primary mt-8 px-8 py-3 text-lg">
+                    <i data-lucide="save" class="w-5 h-5 mr-2"></i> Save All Settings
+                </button>
             `;
             
             // Load existing settings
@@ -1077,6 +1953,7 @@
                 await setDoc(doc(db, "config", "main"), settings);
                 
                 showToast("✅ All settings saved successfully!");
+                loadUsers(); // Refresh users to show updated daily ad limit
                 
             } catch (error) {
                 console.error("Error saving settings:", error);
@@ -1084,6 +1961,415 @@
             } finally {
                 loader.style.display = 'none';
             }
+        }
+
+        async function loadWebsitesConfig() {
+            try {
+                const configSnap = await getDoc(doc(db, "config", "main"));
+                const config = configSnap.data() || {};
+                const websites = config.websitesToVisit || [];
+                
+                const container = document.getElementById('websites-to-visit-list');
+                container.innerHTML = '';
+                
+                if (websites.length === 0) {
+                    // Add default websites
+                    const defaultWebsites = [
+                        { name: "Google", link: "https://www.google.com", reward: 10, timer: 30 },
+                        { name: "YouTube", link: "https://www.youtube.com", reward: 15, timer: 45 },
+                        { name: "Facebook", link: "https://www.facebook.com", reward: 20, timer: 60 }
+                    ];
+                    
+                    defaultWebsites.forEach((site, index) => {
+                        container.innerHTML += `
+                            <div class="website-item">
+                                <div class="website-field">
+                                    <input type="text" placeholder="Website Name" value="${site.name}" data-field="name">
+                                </div>
+                                <div class="website-field">
+                                    <input type="url" placeholder="https://example.com" value="${site.link}" data-field="link">
+                                </div>
+                                <div class="website-field">
+                                    <input type="number" placeholder="Reward" value="${site.reward}" data-field="reward">
+                                </div>
+                                <div class="website-field">
+                                    <input type="number" placeholder="Timer (sec)" value="${site.timer}" data-field="timer">
+                                </div>
+                                <button onclick="removeWebsite(this)" class="btn btn-danger">×</button>
+                            </div>
+                        `;
+                    });
+                } else {
+                    websites.forEach((site, index) => {
+                        container.innerHTML += `
+                            <div class="website-item">
+                                <div class="website-field">
+                                    <input type="text" placeholder="Website Name" value="${site.name}" data-field="name">
+                                </div>
+                                <div class="website-field">
+                                    <input type="url" placeholder="https://example.com" value="${site.link}" data-field="link">
+                                </div>
+                                <div class="website-field">
+                                    <input type="number" placeholder="Reward" value="${site.reward}" data-field="reward">
+                                </div>
+                                <div class="website-field">
+                                    <input type="number" placeholder="Timer (sec)" value="${site.timer}" data-field="timer">
+                                </div>
+                                <button onclick="removeWebsite(this)" class="btn btn-danger">×</button>
+                            </div>
+                        `;
+                    });
+                }
+            } catch (error) {
+                console.error("Error loading website config:", error);
+            }
+        }
+
+        function addNewWebsite() {
+            const container = document.getElementById('websites-to-visit-list');
+            container.innerHTML += `
+                <div class="website-item">
+                    <div class="website-field">
+                        <input type="text" placeholder="Website Name" value="" data-field="name">
+                    </div>
+                    <div class="website-field">
+                        <input type="url" placeholder="https://example.com" value="" data-field="link">
+                    </div>
+                    <div class="website-field">
+                        <input type="number" placeholder="Reward" value="10" data-field="reward">
+                    </div>
+                    <div class="website-field">
+                        <input type="number" placeholder="Timer (sec)" value="30" data-field="timer">
+                    </div>
+                    <button onclick="removeWebsite(this)" class="btn btn-danger">×</button>
+                </div>
+            `;
+        }
+
+        function removeWebsite(button) {
+            const item = button.closest('.website-item');
+            if (item) {
+                item.remove();
+            }
+        }
+
+        async function saveWebsiteConfig() {
+            loader.style.display = 'flex';
+            try {
+                // Get website configurations from the UI
+                const websites = [];
+                const websiteItems = document.querySelectorAll('#websites-to-visit-list .website-item');
+                
+                websiteItems.forEach(item => {
+                    const name = item.querySelector('[data-field="name"]').value.trim();
+                    const link = item.querySelector('[data-field="link"]').value.trim();
+                    const reward = parseInt(item.querySelector('[data-field="reward"]').value) || 10;
+                    const timer = parseInt(item.querySelector('[data-field="timer"]').value) || 30;
+                    
+                    if (name && link) {
+                        websites.push({
+                            name: name,
+                            link: link,
+                            reward: reward,
+                            timer: timer
+                        });
+                    }
+                });
+                
+                // Save to Firebase
+                const configRef = doc(db, "config", "main");
+                await updateDoc(configRef, {
+                    websitesToVisit: websites,
+                    updatedAt: serverTimestamp()
+                });
+                
+                showToast('✅ Website configurations saved successfully!');
+            } catch (error) {
+                console.error("Error saving website config:", error);
+                showAlert('❌ Error saving website configurations: ' + error.message, true);
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
+
+        async function resetWebsiteVisitHistory() {
+            showConfirm("Are you sure you want to reset website visit history for ALL users? This will allow all users to visit websites again for rewards.", async () => {
+                loader.style.display = 'flex';
+                try {
+                    // Get all users
+                    const usersSnap = await getDocs(collection(db, "users"));
+                    const batch = writeBatch(db);
+                    
+                    // Reset visitedWebsitesToday for each user
+                    usersSnap.forEach((userDoc) => {
+                        const userRef = doc(db, "users", userDoc.id);
+                        batch.update(userRef, { 
+                            visitedWebsitesToday: [],
+                            lastWebsiteVisitDate: '1970-01-01'
+                        });
+                    });
+                    
+                    await batch.commit();
+                    showToast("✅ Website visit history reset successfully for all users!");
+                } catch (error) {
+                    console.error("Error resetting website history:", error);
+                    showAlert("❌ Error resetting website history: " + error.message, true);
+                } finally {
+                    loader.style.display = 'none';
+                }
+            });
+        }
+
+        async function testIpinfoApi() {
+            const apiToken = document.getElementById('ipinfoApiToken').value.trim();
+            
+            if (!apiToken) {
+                showAlert("Please enter an API token to test.");
+                return;
+            }
+            
+            loader.style.display = 'flex';
+            try {
+                // Test the API with a sample IP
+                const response = await fetch(`https://api.ipinfo.io/lite/8.8.8.8?token=${apiToken}`);
+                
+                if (!response.ok) {
+                    throw new Error(`API returned status: ${response.status}`);
+                }
+                
+                const data = await response.text();
+                const country = data.trim(); // IPinfo lite API returns just the country code
+                
+                if (country && country.length === 2) {
+                    showAlert(`✅ API Test Successful! Detected country: ${country}`);
+                } else {
+                    showAlert(`⚠️ API responded but didn't return a valid country code. Response: "${data}"`);
+                }
+            } catch (error) {
+                console.error("IPinfo API test error:", error);
+                showAlert(`❌ API Test Failed: ${error.message}. Check your token.`, true);
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
+
+        // User Point History Functions
+        async function viewUserPointHistory(userId, userName) {
+            currentViewingUserId = userId;
+            document.getElementById('history-user-name').textContent = userName;
+            document.getElementById('history-user-id').textContent = userId;
+            
+            loader.style.display = 'flex';
+            try {
+                const historySnap = await getDocs(query(
+                    collection(db, "pointHistory"),
+                    where("userId", "==", userId),
+                    orderBy("timestamp", "desc")
+                ));
+                
+                let totalPoints = 0;
+                let html = '';
+                
+                if (historySnap.empty) {
+                    html = `<tr><td colspan="5" class="text-center py-4 text-gray-500">No point history found for this user</td></tr>`;
+                } else {
+                    historySnap.forEach(doc => {
+                        const history = doc.data();
+                        const points = history.points || 0;
+                        if (points > 0) {
+                            totalPoints += points;
+                        }
+                        
+                        const taskLabels = {
+                            'ad_watch': 'Ad Watch',
+                            'color_game': 'Color Game',
+                            'website_visit': 'Website Visit',
+                            'referral': 'Referral Bonus',
+                            'withdrawal': 'Withdrawal',
+                            'admin_adjustment': 'Admin Adjustment',
+                            'game_play': 'Game Play'
+                        };
+                        
+                        const timestamp = history.timestamp?.toDate().toLocaleString() || 'N/A';
+                        const pointsClass = points > 0 ? 'text-green-600' : 'text-red-600';
+                        const country = history.country || 'N/A';
+                        
+                        html += `<tr class="border-b">
+                            <td class="px-4 py-2 text-sm">${timestamp}</td>
+                            <td class="px-4 py-2">${taskLabels[history.taskType] || history.taskType}</td>
+                            <td class="px-4 py-2 font-semibold ${pointsClass}">${points > 0 ? '+' : ''}${points}</td>
+                            <td class="px-4 py-2">${country}</td>
+                            <td class="px-4 py-2 text-gray-600">${history.details || ''}</td>
+                        </tr>`;
+                    });
+                }
+                
+                document.getElementById('total-points-earned').textContent = totalPoints;
+                document.getElementById('user-point-history-body').innerHTML = html;
+                document.getElementById('user-point-history-modal').style.display = 'flex';
+            } catch (error) {
+                console.error("Error loading point history:", error);
+                showAlert("❌ Error loading point history: " + error.message, true);
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
+
+        function closePointHistoryModal() {
+            document.getElementById('user-point-history-modal').style.display = 'none';
+            currentViewingUserId = null;
+        }
+
+        // User Management Functions
+        async function toggleUserBlock(userId, isBlocked) {
+            showConfirm(`Are you sure you want to ${isBlocked ? 'unblock' : 'block'} this user?`, async () => {
+                loader.style.display = 'flex';
+                try {
+                    await updateDoc(doc(db, "users", userId), { isBlocked: !isBlocked });
+                    showToast(`✅ User ${isBlocked ? 'unblocked' : 'blocked'} successfully!`);
+                    loadUsers();
+                } catch (error) {
+                    console.error("Error updating user:", error);
+                    showAlert("❌ Error updating user status.", true);
+                } finally {
+                    loader.style.display = 'none';
+                }
+            });
+        }
+
+        async function resetDailyAds(userId) {
+            showConfirm("Are you sure you want to reset daily ads for this user?", async () => {
+                loader.style.display = 'flex';
+                try {
+                    await updateDoc(doc(db, "users", userId), { 
+                        dailyAdCount: 0,
+                        lastAdWatchDate: new Date().toISOString().split('T')[0]
+                    });
+                    showToast("✅ Daily ads reset successfully!");
+                    loadUsers();
+                } catch (error) {
+                    console.error("Error resetting daily ads:", error);
+                    showAlert("❌ Error resetting daily ads.", true);
+                } finally {
+                    loader.style.display = 'none';
+                }
+            });
+        }
+
+        // Point Editing Functions
+        function openEditPointsModal(userId, userName, userEmail, currentBalance) {
+            currentEditingUserId = userId;
+            document.getElementById('edit-user-name').textContent = userName;
+            document.getElementById('edit-user-email').textContent = userEmail;
+            document.getElementById('edit-current-balance').textContent = currentBalance;
+            document.getElementById('new-balance-input').value = currentBalance;
+            document.getElementById('edit-points-modal').style.display = 'flex';
+        }
+
+        function closeEditPointsModal() {
+            document.getElementById('edit-points-modal').style.display = 'none';
+            currentEditingUserId = null;
+        }
+
+        async function saveUserPoints() {
+            const newBalance = parseInt(document.getElementById('new-balance-input').value);
+            
+            if (isNaN(newBalance)) {
+                showAlert("Please enter a valid number for the balance.");
+                return;
+            }
+            
+            loader.style.display = 'flex';
+            try {
+                // Get current balance and user data
+                const userRef = doc(db, "users", currentEditingUserId);
+                const userSnap = await getDoc(userRef);
+                const userData = userSnap.data();
+                const currentBalance = userData.balance || 0;
+                
+                // Update user balance
+                await updateDoc(userRef, { balance: newBalance });
+                
+                // Add point history record
+                await addDoc(collection(db, "pointHistory"), {
+                    userId: currentEditingUserId,
+                    userName: userData.name || 'Unknown',
+                    userEmail: userData.email || '',
+                    taskType: 'admin_adjustment',
+                    points: newBalance - currentBalance,
+                    details: `Admin adjusted balance from ${currentBalance} to ${newBalance}`,
+                    timestamp: serverTimestamp(),
+                    country: userData.country || 'N/A'
+                });
+                
+                showToast("✅ User points updated successfully!");
+                closeEditPointsModal();
+                loadUsers();
+            } catch (error) {
+                console.error("Error updating user points:", error);
+                showAlert("❌ Error updating user points: " + error.message, true);
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
+
+        // Withdrawal Processing Functions
+        async function processWithdrawal(requestId, action) {
+            showConfirm(`Are you sure you want to ${action} this withdrawal request?`, async () => {
+                loader.style.display = 'flex';
+                const batch = writeBatch(db);
+                const requestRef = doc(db, "withdrawals", requestId);
+                
+                try {
+                    // Get request data
+                    const requestSnap = await getDoc(requestRef);
+                    if (!requestSnap.exists()) {
+                        throw new Error("Request not found");
+                    }
+                    
+                    const requestData = requestSnap.data();
+                    
+                    // Update withdrawal status
+                    batch.update(requestRef, { 
+                        status: action,
+                        processedAt: serverTimestamp()
+                    });
+                    
+                    // If rejected, refund coins to user
+                    if (action === 'rejected') {
+                        const userRef = doc(db, "users", requestData.userId);
+                        const userSnap = await getDoc(userRef);
+                        
+                        if (userSnap.exists()) {
+                            const userData = userSnap.data();
+                            const currentBalance = userData.balance || 0;
+                            batch.update(userRef, { balance: currentBalance + requestData.amount });
+                            
+                            // Add point history for refund
+                            await addDoc(collection(db, "pointHistory"), {
+                                userId: requestData.userId,
+                                userName: requestData.userName,
+                                userEmail: userData.email || '',
+                                taskType: 'withdrawal',
+                                points: requestData.amount,
+                                details: `Refund for rejected withdrawal #${requestId}`,
+                                timestamp: serverTimestamp(),
+                                country: requestData.country || 'N/A'
+                            });
+                        }
+                    }
+                    
+                    await batch.commit();
+                    showToast(`✅ Withdrawal request ${action} successfully!`);
+                    loadWithdrawals();
+                    loadDashboardData();
+                } catch (error) {
+                    console.error("Error processing withdrawal:", error);
+                    showAlert("❌ Error processing withdrawal request: " + error.message, true);
+                } finally {
+                    loader.style.display = 'none';
+                }
+            });
         }
 
         // Utility Functions
@@ -1142,6 +2428,26 @@
         }
 
         // Make functions available globally
+        window.toggleUserBlock = toggleUserBlock;
+        window.processWithdrawal = processWithdrawal;
+        window.openEditPointsModal = openEditPointsModal;
+        window.closeEditPointsModal = closeEditPointsModal;
+        window.saveUserPoints = saveUserPoints;
+        window.resetDailyAds = resetDailyAds;
+        window.searchUsers = searchUsers;
+        window.filterWithdrawals = filterWithdrawals;
+        window.testTelegramConnection = testTelegramConnection;
+        window.saveTelegramConfig = saveTelegramConfig;
+        window.viewUserPointHistory = viewUserPointHistory;
+        window.closePointHistoryModal = closePointHistoryModal;
+        window.testIpinfoApi = testIpinfoApi;
+        window.resetWebsiteVisitHistory = resetWebsiteVisitHistory;
+        window.addNewWebsite = addNewWebsite;
+        window.removeWebsite = removeWebsite;
+        window.saveWebsiteConfig = saveWebsiteConfig;
+        window.saveAllSettings = saveAllSettings;
+        
+        // Game Management functions (from reference code)
         window.openQuickSettings = openQuickSettings;
         window.closeQuickSettingsModal = closeQuickSettingsModal;
         window.saveQuickGameSettings = saveQuickGameSettings;
@@ -1151,8 +2457,6 @@
         window.hideAllGames = hideAllGames;
         window.syncAllGameSettings = syncAllGameSettings;
         window.resetAllGameStats = resetAllGameStats;
-        window.saveAllSettings = saveAllSettings;
-
     </script>
 </body>
-</html>
+                    </html>

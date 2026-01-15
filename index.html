@@ -61,6 +61,9 @@
         .limit-title { font-size: 0.875rem; font-weight: 600; color: #475569; margin-bottom: 0.5rem; }
         .limit-value { font-size: 1.25rem; font-weight: 700; color: #1e40af; }
         .game-action-buttons { display: flex; gap: 0.5rem; margin-top: 1rem; }
+        .settings-section { margin-bottom: 2rem; }
+        .settings-card { background: white; border-radius: 0.5rem; padding: 1.5rem; box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1); }
+        .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
     </style>
 </head>
 <body>
@@ -200,57 +203,6 @@
         </div>
     </div>
 
-    <!-- Game Stats Details Modal -->
-    <div id="game-stats-details-modal" class="modal-overlay">
-        <div class="modal" style="max-width: 700px;">
-            <div class="flex justify-between items-center mb-6">
-                <h3 class="text-xl font-bold" id="game-stats-title">Game Statistics Details</h3>
-                <button onclick="closeGameStatsModal()" class="text-gray-500 hover:text-gray-700">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-            </div>
-            
-            <div class="space-y-6">
-                <div class="grid grid-cols-3 gap-4">
-                    <div class="limit-card">
-                        <div class="limit-title">Today's Plays</div>
-                        <div class="limit-value" id="stats-today-plays">0</div>
-                    </div>
-                    <div class="limit-card">
-                        <div class="limit-title">Today's Users</div>
-                        <div class="limit-value" id="stats-today-users">0</div>
-                    </div>
-                    <div class="limit-card">
-                        <div class="limit-title">Today's Points</div>
-                        <div class="limit-value" id="stats-today-points">0</div>
-                    </div>
-                </div>
-                
-                <div>
-                    <h4 class="font-semibold mb-3">Recent Plays</h4>
-                    <div class="bg-gray-50 rounded-lg p-4 max-h-64 overflow-y-auto">
-                        <table class="w-full text-sm">
-                            <thead>
-                                <tr class="border-b">
-                                    <th class="pb-2">Time</th>
-                                    <th class="pb-2">User</th>
-                                    <th class="pb-2">Points</th>
-                                </tr>
-                            </thead>
-                            <tbody id="recent-game-plays-body">
-                                <!-- Will be populated -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                
-                <div class="text-center">
-                    <button onclick="resetTodayGameStats()" class="btn btn-warning">Reset Today's Stats</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <script type="module">
         // Firebase Configuration
         const firebaseConfig = {
@@ -304,7 +256,6 @@
         // DOM Elements
         const loader = document.getElementById('loader');
         let currentEditingGameId = null;
-        let currentGameStatsId = null;
 
         // Initialize on load
         window.onload = () => {
@@ -394,67 +345,7 @@
             if (pageId === 'settings') loadSettings();
         }
 
-        // Dashboard Functions
-        async function loadDashboard() {
-            const page = document.getElementById('dashboard');
-            page.innerHTML = `
-                <h1 class="text-3xl font-bold mb-6">Dashboard</h1>
-                <div id="stats-grid" class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <div class="stat-card p-6"><h3 class="text-gray-500 text-lg">Total Users</h3><p id="total-users" class="text-4xl font-bold mt-2">0</p></div>
-                    <div class="stat-card p-6"><h3 class="text-gray-500 text-lg">Total Withdrawals</h3><p id="total-withdrawals" class="text-4xl font-bold mt-2">0</p></div>
-                    <div class="stat-card p-6"><h3 class="text-gray-500 text-lg">Pending Withdrawals</h3><p id="pending-withdrawals" class="text-4xl font-bold text-orange-500 mt-2">0</p></div>
-                    <div class="stat-card p-6"><h3 class="text-gray-500 text-lg">Today's Earnings</h3><p id="today-earnings" class="text-4xl font-bold text-green-600 mt-2">0</p></div>
-                </div>
-                <div class="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div>
-                        <h2 class="text-2xl font-bold mb-4">Recent Withdrawals</h2>
-                        <div id="recent-withdrawals" class="bg-white shadow rounded-lg p-4">
-                            Loading...
-                        </div>
-                    </div>
-                    <div>
-                        <h2 class="text-2xl font-bold mb-4">Recent Users</h2>
-                        <div id="recent-users" class="bg-white shadow rounded-lg p-4">
-                            Loading...
-                        </div>
-                    </div>
-                </div>
-                <div class="mt-8">
-                    <h2 class="text-2xl font-bold mb-4">Game Statistics</h2>
-                    <div id="game-stats" class="bg-white shadow rounded-lg p-4">
-                        Loading...
-                    </div>
-                </div>
-            `;
-            
-            // Load real-time data
-            loadDashboardData();
-        }
-
-        function loadDashboardData() {
-            // Total Users (real-time)
-            onSnapshot(collection(db, "users"), snap => {
-                document.getElementById('total-users').textContent = snap.size;
-            });
-
-            // Total Withdrawals (real-time)
-            onSnapshot(collection(db, "withdrawals"), snap => {
-                document.getElementById('total-withdrawals').textContent = snap.size;
-            });
-
-            // Pending Withdrawals (real-time)
-            onSnapshot(query(collection(db, "withdrawals"), where("status", "==", "pending")), snap => {
-                document.getElementById('pending-withdrawals').textContent = snap.size;
-            });
-
-            // Load recent data
-            loadRecentWithdrawals();
-            loadRecentUsers();
-            loadTodayEarnings();
-            loadGameStats();
-        }
-
-        // Game Management Functions (Updated)
+        // Game Management Functions
         async function loadGames() {
             const page = document.getElementById('games');
             page.innerHTML = `
@@ -512,18 +403,11 @@
                                 <span class="font-semibold">Today's Plays:</span>
                                 <span class="font-bold text-blue-600" id="colorGame-today-plays">0</span>
                             </div>
-                            <div class="flex items-center justify-between mb-4">
-                                <span class="font-semibold">Total Plays:</span>
-                                <span class="font-bold text-green-600" id="colorGame-total-plays">0</span>
-                            </div>
                         </div>
                         
                         <div class="game-action-buttons">
                             <button onclick="openQuickSettings('colorGame')" class="btn btn-primary flex-1">
                                 <i data-lucide="settings" class="w-4 h-4 mr-2"></i> Settings
-                            </button>
-                            <button onclick="viewGameStats('colorGame')" class="btn btn-secondary">
-                                <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
                             </button>
                         </div>
                     </div>
@@ -559,18 +443,11 @@
                                 <span class="font-semibold">Today's Plays:</span>
                                 <span class="font-bold text-blue-600" id="watchVideo-today-plays">0</span>
                             </div>
-                            <div class="flex items-center justify-between mb-4">
-                                <span class="font-semibold">Total Plays:</span>
-                                <span class="font-bold text-green-600" id="watchVideo-total-plays">0</span>
-                            </div>
                         </div>
                         
                         <div class="game-action-buttons">
                             <button onclick="openQuickSettings('watchVideo')" class="btn btn-primary flex-1">
                                 <i data-lucide="settings" class="w-4 h-4 mr-2"></i> Settings
-                            </button>
-                            <button onclick="viewGameStats('watchVideo')" class="btn btn-secondary">
-                                <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
                             </button>
                         </div>
                     </div>
@@ -606,28 +483,13 @@
                                 <span class="font-semibold">Today's Plays:</span>
                                 <span class="font-bold text-blue-600" id="ludoDice-today-plays">0</span>
                             </div>
-                            <div class="flex items-center justify-between mb-4">
-                                <span class="font-semibold">Total Plays:</span>
-                                <span class="font-bold text-green-600" id="ludoDice-total-plays">0</span>
-                            </div>
                         </div>
                         
                         <div class="game-action-buttons">
                             <button onclick="openQuickSettings('ludoDice')" class="btn btn-primary flex-1">
                                 <i data-lucide="settings" class="w-4 h-4 mr-2"></i> Settings
                             </button>
-                            <button onclick="viewGameStats('ludoDice')" class="btn btn-secondary">
-                                <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
-                            </button>
                         </div>
-                    </div>
-                </div>
-                
-                <!-- Status Summary -->
-                <div class="bg-white p-6 rounded-lg shadow mb-6">
-                    <h2 class="text-xl font-bold mb-4">Game Status Summary</h2>
-                    <div id="game-status-summary" class="space-y-3">
-                        Loading...
                     </div>
                 </div>
                 
@@ -661,14 +523,12 @@
             `;
             
             await loadGamesData();
-            await loadGamesStats();
-            await loadGameStatusSummary();
         }
 
         async function loadGamesData() {
             try {
                 const gamesSnap = await getDoc(doc(db, "config", "games"));
-                const gamesConfig = gamesSnap.exists() ? gamesConfigSnap.data() : {};
+                const gamesConfig = gamesSnap.exists() ? gamesSnap.data() : {};
                 
                 // Load game configurations
                 const games = [
@@ -707,81 +567,6 @@
             } catch (error) {
                 console.error("Error loading games data:", error);
                 showAlert("❌ Error loading game configurations", true);
-            }
-        }
-
-        async function loadGamesStats() {
-            try {
-                const gamesSnap = await getDoc(doc(db, "config", "games"));
-                const gamesConfig = gamesSnap.exists() ? gamesSnap.data() : {};
-                
-                // Get today's stats
-                const today = new Date().toISOString().split('T')[0];
-                const todayStats = gamesConfig.dailyStats?.[today] || {};
-                const allTimeStats = gamesConfig.allTimeStats || {};
-                
-                const games = ['colorGame', 'watchVideo', 'ludoDice'];
-                
-                games.forEach(gameId => {
-                    const todayGameStats = todayStats[gameId] || { playCount: 0, userCount: 0 };
-                    const allTimeGameStats = allTimeStats[gameId] || { playCount: 0, userCount: 0 };
-                    
-                    // Update today's plays
-                    const todayPlaysEl = document.getElementById(`${gameId}-today-plays`);
-                    if (todayPlaysEl) {
-                        todayPlaysEl.textContent = todayGameStats.playCount;
-                    }
-                    
-                    // Update total plays
-                    const totalPlaysEl = document.getElementById(`${gameId}-total-plays`);
-                    if (totalPlaysEl) {
-                        totalPlaysEl.textContent = allTimeGameStats.playCount;
-                    }
-                });
-                
-            } catch (error) {
-                console.error("Error loading game stats:", error);
-            }
-        }
-
-        async function loadGameStatusSummary() {
-            try {
-                const gamesSnap = await getDoc(doc(db, "config", "games"));
-                const gamesConfig = gamesSnap.exists() ? gamesSnap.data() : {};
-                
-                let html = '';
-                const games = [
-                    { id: 'colorGame', name: 'Color Game' },
-                    { id: 'watchVideo', name: 'Watch Video' },
-                    { id: 'ludoDice', name: 'Ludo Dice' }
-                ];
-                
-                games.forEach(game => {
-                    const gameConfig = gamesConfig[game.id] || {};
-                    const isVisible = gameConfig.visible !== false;
-                    const dailyPlayLimit = gameConfig.dailyPlayLimit || 0;
-                    const rewardPerPlay = gameConfig.rewardPerPlay || 0;
-                    
-                    html += `
-                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                            <div class="flex items-center">
-                                <div class="w-3 h-3 rounded-full mr-3 ${isVisible ? 'bg-green-500' : 'bg-red-500'}"></div>
-                                <span class="font-semibold">${game.name}</span>
-                            </div>
-                            <div class="flex items-center space-x-4">
-                                <span class="text-sm ${isVisible ? 'text-green-600' : 'text-red-600'}">
-                                    ${isVisible ? 'Visible' : 'Hidden'}
-                                </span>
-                                <span class="text-sm text-blue-600">Limit: ${dailyPlayLimit > 0 ? dailyPlayLimit : '∞'}</span>
-                                <span class="text-sm text-purple-600">Reward: ${rewardPerPlay} pts</span>
-                            </div>
-                        </div>
-                    `;
-                });
-                
-                document.getElementById('game-status-summary').innerHTML = html;
-            } catch (error) {
-                console.error("Error loading game status:", error);
             }
         }
 
@@ -870,8 +655,6 @@
                 
                 // Refresh displays
                 await loadGamesData();
-                await loadGamesStats();
-                await loadGameStatusSummary();
                 
             } catch (error) {
                 console.error("Error saving game settings:", error);
@@ -910,7 +693,6 @@
                     
                     showToast(`✅ Daily play limit of ${limit} applied to all games!`);
                     await loadGamesData();
-                    await loadGameStatusSummary();
                     
                 } catch (error) {
                     console.error("Error applying global limit:", error);
@@ -949,7 +731,6 @@
                     
                     showToast(`✅ Reward of ${reward} points applied to all games!`);
                     await loadGamesData();
-                    await loadGameStatusSummary();
                     
                 } catch (error) {
                     console.error("Error applying global reward:", error);
@@ -981,7 +762,6 @@
                     
                     showToast("✅ All games are now visible!");
                     await loadGamesData();
-                    await loadGameStatusSummary();
                     
                 } catch (error) {
                     console.error("Error showing all games:", error);
@@ -1013,7 +793,6 @@
                     
                     showToast("✅ All games are now hidden!");
                     await loadGamesData();
-                    await loadGameStatusSummary();
                     
                 } catch (error) {
                     console.error("Error hiding all games:", error);
@@ -1028,8 +807,6 @@
             loader.style.display = 'flex';
             try {
                 await loadGamesData();
-                await loadGamesStats();
-                await loadGameStatusSummary();
                 showToast("✅ All game settings synchronized!");
             } catch (error) {
                 console.error("Error syncing game settings:", error);
@@ -1037,142 +814,6 @@
             } finally {
                 loader.style.display = 'none';
             }
-        }
-
-        // Game Stats Functions
-        async function viewGameStats(gameId) {
-            currentGameStatsId = gameId;
-            
-            const gameNames = {
-                'colorGame': 'Color Game',
-                'watchVideo': 'Watch Video',
-                'ludoDice': 'Ludo Dice'
-            };
-            
-            document.getElementById('game-stats-title').textContent = `${gameNames[gameId]} Statistics`;
-            
-            await loadGameStatsDetails(gameId);
-            
-            document.getElementById('game-stats-details-modal').style.display = 'flex';
-        }
-
-        async function loadGameStatsDetails(gameId) {
-            try {
-                const gamesSnap = await getDoc(doc(db, "config", "games"));
-                const gamesConfig = gamesSnap.exists() ? gamesSnap.data() : {};
-                
-                // Get today's stats
-                const today = new Date().toISOString().split('T')[0];
-                const todayStats = gamesConfig.dailyStats?.[today] || {};
-                const allTimeStats = gamesConfig.allTimeStats || {};
-                
-                const gameStats = todayStats[gameId] || { playCount: 0, userCount: 0 };
-                const gameConfig = gamesConfig[gameId] || {};
-                const rewardPerPlay = gameConfig.rewardPerPlay || 0;
-                
-                // Update stats displays
-                document.getElementById('stats-today-plays').textContent = gameStats.playCount || 0;
-                document.getElementById('stats-today-users').textContent = gameStats.userCount || 0;
-                document.getElementById('stats-today-points').textContent = (gameStats.playCount || 0) * rewardPerPlay;
-                
-                // Load recent plays from pointHistory
-                const recentPlays = await getRecentGamePlays(gameId);
-                const recentPlaysBody = document.getElementById('recent-game-plays-body');
-                recentPlaysBody.innerHTML = '';
-                
-                if (recentPlays.length === 0) {
-                    recentPlaysBody.innerHTML = `
-                        <tr>
-                            <td colspan="3" class="text-center py-4 text-gray-500">
-                                No recent plays found
-                            </td>
-                        </tr>
-                    `;
-                } else {
-                    recentPlays.forEach(play => {
-                        const time = play.timestamp?.toDate().toLocaleTimeString() || 'N/A';
-                        recentPlaysBody.innerHTML += `
-                            <tr class="border-b">
-                                <td class="py-2">${time}</td>
-                                <td class="py-2">${play.userName || 'Unknown'}</td>
-                                <td class="py-2 font-semibold text-green-600">+${play.points}</td>
-                            </tr>
-                        `;
-                    });
-                }
-                
-            } catch (error) {
-                console.error("Error loading game stats details:", error);
-            }
-        }
-
-        async function getRecentGamePlays(gameId) {
-            try {
-                const taskType = gameId === 'colorGame' ? 'color_game' : 
-                               gameId === 'watchVideo' ? 'ad_watch' : 'ludo_game';
-                
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                
-                const q = query(
-                    collection(db, "pointHistory"),
-                    where("taskType", "==", taskType),
-                    where("timestamp", ">=", today),
-                    orderBy("timestamp", "desc"),
-                    limit(20)
-                );
-                
-                const snap = await getDocs(q);
-                const plays = [];
-                snap.forEach(doc => {
-                    plays.push(doc.data());
-                });
-                
-                return plays;
-            } catch (error) {
-                console.error("Error getting recent plays:", error);
-                return [];
-            }
-        }
-
-        function closeGameStatsModal() {
-            document.getElementById('game-stats-details-modal').style.display = 'none';
-            currentGameStatsId = null;
-        }
-
-        async function resetTodayGameStats() {
-            if (!currentGameStatsId) return;
-            
-            showConfirm("Reset today's statistics for this game?", async () => {
-                loader.style.display = 'flex';
-                try {
-                    const gameRef = doc(db, "config", "games");
-                    const gameSnap = await getDoc(gameRef);
-                    const currentData = gameSnap.exists() ? gameSnap.data() : {};
-                    
-                    const today = new Date().toISOString().split('T')[0];
-                    const dailyStats = currentData.dailyStats || {};
-                    
-                    if (dailyStats[today] && dailyStats[today][currentGameStatsId]) {
-                        delete dailyStats[today][currentGameStatsId];
-                        await updateDoc(gameRef, { 
-                            dailyStats: dailyStats,
-                            updatedAt: serverTimestamp()
-                        });
-                        
-                        showToast("✅ Today's game statistics reset!");
-                        await loadGameStatsDetails(currentGameStatsId);
-                        await loadGamesStats();
-                        await loadGameStatusSummary();
-                    }
-                    
-                } catch (error) {
-                    console.error("Error resetting game stats:", error);
-                    showAlert("❌ Error resetting game statistics", true);
-                } finally {
-                    loader.style.display = 'none';
-                }
-            });
         }
 
         async function resetAllGameStats() {
@@ -1194,12 +835,6 @@
                     await setDoc(gameRef, updateData);
                     
                     showToast("✅ All game statistics reset successfully!");
-                    await loadGamesStats();
-                    await loadGameStatusSummary();
-                    
-                    if (currentGameStatsId) {
-                        await loadGameStatsDetails(currentGameStatsId);
-                    }
                     
                 } catch (error) {
                     console.error("Error resetting game stats:", error);
@@ -1210,8 +845,246 @@
             });
         }
 
-        // The rest of the functions (dashboard, users, withdrawals, notifications, settings) remain the same...
-        // [Keep all the other functions from the original admin panel code here...]
+        // Settings Functions - FIXED VERSION
+        async function loadSettings() {
+            const page = document.getElementById('settings');
+            page.innerHTML = `
+                <h1 class="text-3xl font-bold mb-6">App Settings</h1>
+                <div class="space-y-6">
+                    <!-- General Settings -->
+                    <div class="settings-card">
+                        <h2 class="text-xl font-bold mb-4">General Settings</h2>
+                        <div class="settings-grid">
+                            <div>
+                                <label class="block font-semibold mb-2">Minimum Withdrawal (Coins)</label>
+                                <input type="number" id="minWithdrawal" class="input-field" placeholder="1000">
+                            </div>
+                            <div>
+                                <label class="block font-semibold mb-2">Daily Ad Watch Limit</label>
+                                <input type="number" id="dailyAdLimit" class="input-field" value="100">
+                            </div>
+                            <div>
+                                <label class="block font-semibold mb-2">Ad Watch Reward (Points)</label>
+                                <input type="number" id="adWatchReward" class="input-field" placeholder="50">
+                            </div>
+                            <div>
+                                <label class="block font-semibold mb-2">Color Game Reward (Points)</label>
+                                <input type="number" id="colorGameReward" class="input-field" placeholder="100">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Payment Settings -->
+                    <div class="settings-card">
+                        <h2 class="text-xl font-bold mb-4">Payment Settings</h2>
+                        <div class="settings-grid">
+                            <div>
+                                <label class="block font-semibold mb-2">Coin Conversion</label>
+                                <div class="flex items-center space-x-2">
+                                    <input type="number" id="coinValueCoins" class="input-field" placeholder="1000">
+                                    <span class="text-gray-500">coins =</span>
+                                    <input type="number" id="coinValueInr" class="input-field" placeholder="10">
+                                    <span class="text-gray-500">₹</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block font-semibold mb-2">Payment Methods</label>
+                                <input type="text" id="paymentMethods" class="input-field" placeholder="UPI, Paytm, PhonePe">
+                                <p class="text-sm text-gray-500 mt-1">Comma separated list</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Referral Settings -->
+                    <div class="settings-card">
+                        <h2 class="text-xl font-bold mb-4">Referral System</h2>
+                        <div class="settings-grid">
+                            <div>
+                                <label class="block font-semibold mb-2">Referral Bonus (Points)</label>
+                                <input type="number" id="referralBonus" class="input-field" placeholder="100">
+                            </div>
+                            <div>
+                                <label class="block font-semibold mb-2">Referral Rules</label>
+                                <textarea id="referralRules" class="input-field h-32" placeholder="One rule per line"></textarea>
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block font-semibold mb-2">Referral Share Text</label>
+                                <textarea id="referralShareText" class="input-field h-24" placeholder="Use {CODE} for referral code and {APP_LINK} for app link"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Special Tasks -->
+                    <div class="settings-card">
+                        <h2 class="text-xl font-bold mb-4">Special Ad Task</h2>
+                        <div class="settings-grid">
+                            <div>
+                                <label class="block font-semibold mb-2">Show after # of Ads</label>
+                                <input type="number" id="watchAdSpecialTaskCount" class="input-field" placeholder="10">
+                            </div>
+                            <div>
+                                <label class="block font-semibold mb-2">Task Reward (Points)</label>
+                                <input type="number" id="watchAdSpecialTaskReward" class="input-field" placeholder="100">
+                            </div>
+                            <div>
+                                <label class="block font-semibold mb-2">Wait Timer (Seconds)</label>
+                                <input type="number" id="watchAdSpecialTaskTimer" class="input-field" placeholder="60">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Country Restrictions -->
+                    <div class="settings-card">
+                        <h2 class="text-xl font-bold mb-4">Country Restrictions</h2>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block font-semibold mb-2">IPinfo API Token</label>
+                                <input type="text" id="ipinfoApiToken" class="input-field" placeholder="Enter token for country detection">
+                                <p class="text-sm text-gray-500 mt-1">Leave empty to disable country detection</p>
+                            </div>
+                            <div>
+                                <label class="block font-semibold mb-2">Allowed Countries</label>
+                                <input type="text" id="allowedCountries" class="input-field" placeholder="in, us, uk, ca, au (comma separated)">
+                                <p class="text-sm text-gray-500 mt-1">Leave empty to allow all countries</p>
+                            </div>
+                            <div>
+                                <label class="block font-semibold mb-2">Blocked Country Message</label>
+                                <textarea id="blockedCountryMessage" class="input-field h-20" placeholder="Sorry, this app is not available in your country."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-8 flex justify-center">
+                    <button onclick="saveAllSettings()" class="btn btn-primary px-8 py-3 text-lg">
+                        <i data-lucide="save" class="w-5 h-5 mr-2"></i> Save All Settings
+                    </button>
+                </div>
+            `;
+            
+            // Load existing settings
+            await loadSettingsData();
+        }
+
+        async function loadSettingsData() {
+            try {
+                const configSnap = await getDoc(doc(db, "config", "main"));
+                
+                if (!configSnap.exists()) {
+                    console.log("No settings found, using defaults");
+                    return;
+                }
+                
+                const config = configSnap.data();
+                
+                // Populate settings fields
+                if (config.minWithdrawal !== undefined) {
+                    document.getElementById('minWithdrawal').value = config.minWithdrawal;
+                }
+                
+                if (config.dailyAdLimit !== undefined) {
+                    document.getElementById('dailyAdLimit').value = config.dailyAdLimit;
+                }
+                
+                if (config.adWatchReward !== undefined) {
+                    document.getElementById('adWatchReward').value = config.adWatchReward;
+                }
+                
+                if (config.colorGameReward !== undefined) {
+                    document.getElementById('colorGameReward').value = config.colorGameReward;
+                }
+                
+                if (config.coinValueCoins !== undefined) {
+                    document.getElementById('coinValueCoins').value = config.coinValueCoins;
+                }
+                
+                if (config.coinValueInr !== undefined) {
+                    document.getElementById('coinValueInr').value = config.coinValueInr;
+                }
+                
+                if (config.paymentMethods && Array.isArray(config.paymentMethods)) {
+                    document.getElementById('paymentMethods').value = config.paymentMethods.join(', ');
+                }
+                
+                if (config.referralBonus !== undefined) {
+                    document.getElementById('referralBonus').value = config.referralBonus;
+                }
+                
+                if (config.referralRules && Array.isArray(config.referralRules)) {
+                    document.getElementById('referralRules').value = config.referralRules.join('\n');
+                }
+                
+                if (config.referralShareText) {
+                    document.getElementById('referralShareText').value = config.referralShareText;
+                }
+                
+                if (config.watchAdSpecialTaskCount !== undefined) {
+                    document.getElementById('watchAdSpecialTaskCount').value = config.watchAdSpecialTaskCount;
+                }
+                
+                if (config.watchAdSpecialTaskReward !== undefined) {
+                    document.getElementById('watchAdSpecialTaskReward').value = config.watchAdSpecialTaskReward;
+                }
+                
+                if (config.watchAdSpecialTaskTimer !== undefined) {
+                    document.getElementById('watchAdSpecialTaskTimer').value = config.watchAdSpecialTaskTimer;
+                }
+                
+                if (config.ipinfoApiToken) {
+                    document.getElementById('ipinfoApiToken').value = config.ipinfoApiToken;
+                }
+                
+                if (config.allowedCountries && Array.isArray(config.allowedCountries)) {
+                    document.getElementById('allowedCountries').value = config.allowedCountries.join(', ');
+                }
+                
+                if (config.blockedCountryMessage) {
+                    document.getElementById('blockedCountryMessage').value = config.blockedCountryMessage;
+                }
+                
+            } catch (error) {
+                console.error("Error loading settings:", error);
+                showAlert("❌ Error loading settings", true);
+            }
+        }
+
+        async function saveAllSettings() {
+            loader.style.display = 'flex';
+            
+            try {
+                // Collect all settings from form
+                const settings = {
+                    minWithdrawal: parseInt(document.getElementById('minWithdrawal').value) || 1000,
+                    dailyAdLimit: parseInt(document.getElementById('dailyAdLimit').value) || 100,
+                    adWatchReward: parseInt(document.getElementById('adWatchReward').value) || 50,
+                    colorGameReward: parseInt(document.getElementById('colorGameReward').value) || 100,
+                    coinValueCoins: parseInt(document.getElementById('coinValueCoins').value) || 1000,
+                    coinValueInr: parseInt(document.getElementById('coinValueInr').value) || 10,
+                    paymentMethods: document.getElementById('paymentMethods').value.split(',').map(s => s.trim()).filter(Boolean),
+                    referralBonus: parseInt(document.getElementById('referralBonus').value) || 100,
+                    referralRules: document.getElementById('referralRules').value.split('\n').map(s => s.trim()).filter(Boolean),
+                    referralShareText: document.getElementById('referralShareText').value.trim() || "Use my code {CODE} to get a bonus. App link: {APP_LINK}",
+                    watchAdSpecialTaskCount: parseInt(document.getElementById('watchAdSpecialTaskCount').value) || 10,
+                    watchAdSpecialTaskReward: parseInt(document.getElementById('watchAdSpecialTaskReward').value) || 100,
+                    watchAdSpecialTaskTimer: parseInt(document.getElementById('watchAdSpecialTaskTimer').value) || 60,
+                    ipinfoApiToken: document.getElementById('ipinfoApiToken').value.trim(),
+                    allowedCountries: document.getElementById('allowedCountries').value.split(',').map(s => s.trim().toLowerCase()).filter(Boolean),
+                    blockedCountryMessage: document.getElementById('blockedCountryMessage').value.trim() || "Sorry, this app is not available in your country.",
+                    updatedAt: serverTimestamp()
+                };
+                
+                // Save to Firebase
+                await setDoc(doc(db, "config", "main"), settings);
+                
+                showToast("✅ All settings saved successfully!");
+                
+            } catch (error) {
+                console.error("Error saving settings:", error);
+                showAlert("❌ Error saving settings: " + error.message, true);
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
 
         // Utility Functions
         function showAlert(message, isError = false) {
@@ -1272,18 +1145,13 @@
         window.openQuickSettings = openQuickSettings;
         window.closeQuickSettingsModal = closeQuickSettingsModal;
         window.saveQuickGameSettings = saveQuickGameSettings;
-        window.viewGameStats = viewGameStats;
-        window.closeGameStatsModal = closeGameStatsModal;
-        window.resetTodayGameStats = resetTodayGameStats;
         window.applyGlobalPlayLimit = applyGlobalPlayLimit;
         window.applyGlobalReward = applyGlobalReward;
         window.showAllGames = showAllGames;
         window.hideAllGames = hideAllGames;
         window.syncAllGameSettings = syncAllGameSettings;
         window.resetAllGameStats = resetAllGameStats;
-
-        // Make sure to include all the other window function assignments from the original code...
-        // [Keep all other window function assignments here...]
+        window.saveAllSettings = saveAllSettings;
 
     </script>
 </body>

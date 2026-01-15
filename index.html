@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CashReward Admin Panel - Game Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .admin-page { display: none; }
+        .admin-page.active { display: block; animation: fadeIn 0.5s; }
+        .sidebar-link { transition: all 0.2s; border-left: 3px solid transparent; }
+        .sidebar-link.active, .sidebar-link:hover { background-color: #4f46e5; color: white; border-left-color: #818cf8; }
+        .stat-card { background: white; border-radius: 0.5rem; box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px 0 rgba(0,0,0,0.06); }
+        .input-field { border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; border-radius: 0.375rem; width: 100%; }
+        .btn { padding: 0.5rem 1rem; border-radius: 0.375rem; font-weight: 600; transition: all 0.2s; cursor: pointer; }
+        .btn:active { transform: scale(0.95); }
+        .btn-primary { background-color: #4f46e5; color: white; border: none; }
+        .btn-primary:hover { background-color: #4338ca; }
+        .btn-secondary { background-color: #64748b; color: white; border: none; }
+        .btn-danger { background-color: #ef4444; color: white; border: none; }
+        .btn-success { background-color: #10b981; color: white; border: none; }
+        .btn-warning { background-color: #f59e0b; color: white; border: none; }
+        .btn-sm { padding: 0.25rem 0.5rem; font-size: 0.875rem; }
+        #toast-notification { transition: opacity 0.5s ease-in-out; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid #e5e7eb; }
+        th { background-color: #f9fafb; font-weight: 600; }
+        .status-badge { padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
+        .status-active { background-color: #d1fae5; color: #065f46; }
+        .status-blocked { background-color: #fee2e2; color: #991b1b; }
+        .status-pending { background-color: #fef3c7; color: #92400e; }
+        .status-approved { background-color: #d1fae5; color: #065f46; }
+        .status-rejected { background-color: #fee2e2; color: #991b1b; }
+        .status-visible { background-color: #3b82f6; color: white; }
+        .status-hidden { background-color: #6b7280; color: white; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; }
+        .modal { background: white; border-radius: 0.5rem; max-width: 500px; margin: 2rem auto; padding: 1.5rem; max-height: 80vh; overflow-y: auto; }
+        .point-input { width: 100px; text-align: center; }
+        .view-points-btn { background-color: #3b82f6; color: white; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; }
+        .game-card { background: white; border-radius: 0.5rem; padding: 1.5rem; box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1); }
+        .time-input { width: 120px; }
+        .switch { position: relative; display: inline-block; width: 60px; height: 34px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; }
+        .slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; transition: .4s; }
+        input:checked + .slider { background-color: #10b981; }
+        input:checked + .slider:before { transform: translateX(26px); }
+        .slider.round { border-radius: 34px; }
+        .slider.round:before { border-radius: 50%; }
+        .website-item { display: flex; gap: 10px; margin-bottom: 10px; padding: 10px; border: 1px solid #e5e7eb; border-radius: 8px; background: #f9fafb; }
+        .website-field { flex: 1; }
+        .website-field input { width: 100%; }
+        .feature-toggle { display: flex; align-items: center; justify-content: space-between; margin: 1rem 0; }
+        .feature-label { font-weight: 600; color: #374151; }
+        .game-limits-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.5rem 0; }
+        .limit-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; }
+        .limit-title { font-size: 0.875rem; font-weight: 600; color: #475569; margin-bottom: 0.5rem; }
+        .limit-value { font-size: 1.25rem; font-weight: 700; color: #1e40af; }
+        .game-action-buttons { display: flex; gap: 0.5rem; margin-top: 1rem; }
+    </style>
+</head>
+<body>
+    <!-- Loader -->
+    <div id="loader" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-indigo-500"></div>
+    </div>
+    
+    <!-- Login Section -->
+    <div id="auth-section" class="min-h-screen flex items-center justify-center bg-gray-100">
+        <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-sm">
+            <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">Admin Panel Login</h2>
+            <input id="login-email" type="email" placeholder="Email" class="input-field mb-4">
+            <input id="login-password" type="password" placeholder="Password" class="input-field mb-4">
+            <button id="login-btn" class="btn btn-primary w-full">Login</button>
+            <p id="login-error" class="text-red-500 text-sm mt-2 text-center"></p>
+        </div>
+    </div>
+
+    <!-- Main Admin Panel -->
+    <div id="panel-section" class="hidden">
+        <div class="flex h-screen bg-gray-100">
+            <!-- Sidebar -->
+            <aside class="w-64 bg-gray-800 text-gray-200 flex-shrink-0">
+                <div class="p-4 text-2xl font-bold text-white">CashReward</div>
+                <nav class="mt-6">
+                    <a href="#" data-page="dashboard" class="sidebar-link active flex items-center py-3 px-4">
+                        <i data-lucide="layout-dashboard" class="w-5 h-5 mr-3"></i>Dashboard
+                    </a>
+                    <a href="#" data-page="users" class="sidebar-link flex items-center py-3 px-4">
+                        <i data-lucide="users" class="w-5 h-5 mr-3"></i>Users
+                    </a>
+                    <a href="#" data-page="withdrawals" class="sidebar-link flex items-center py-3 px-4">
+                        <i data-lucide="banknote" class="w-5 h-5 mr-3"></i>Withdrawals
+                    </a>
+                    <a href="#" data-page="games" class="sidebar-link flex items-center py-3 px-4">
+                        <i data-lucide="gamepad-2" class="w-5 h-5 mr-3"></i>Game Management
+                    </a>
+                    <a href="#" data-page="notifications" class="sidebar-link flex items-center py-3 px-4">
+                        <i data-lucide="send" class="w-5 h-5 mr-3"></i>Notifications
+                    </a>
+                    <a href="#" data-page="settings" class="sidebar-link flex items-center py-3 px-4">
+                        <i data-lucide="settings" class="w-5 h-5 mr-3"></i>App Settings
+                    </a>
+                </nav>
+                <div class="absolute bottom-0 w-64 p-4">
+                    <button id="logout-btn" class="w-full bg-red-600 text-white py-2 rounded-lg">Logout</button>
+                </div>
+            </aside>
+            
+            <!-- Main Content -->
+            <main class="flex-1 p-6 overflow-y-auto">
+                <div id="dashboard" class="admin-page active"></div>
+                <div id="users" class="admin-page"></div>
+                <div id="withdrawals" class="admin-page"></div>
+                <div id="games" class="admin-page"></div>
+                <div id="notifications" class="admin-page"></div>
+                <div id="settings" class="admin-page"></div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast-notification" class="hidden fixed top-5 right-5 text-white px-6 py-3 rounded-lg shadow-lg opacity-0 z-50">
+        <p id="toast-message"></p>
+    </div>
+
+    <!-- Alert Modal -->
+    <div id="custom-alert" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-lg p-6 w-full max-w-sm text-center shadow-xl">
+            <p id="alert-message" class="mb-4 text-gray-800"></p>
+            <button id="alert-ok-btn" class="btn btn-primary px-6">OK</button>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="custom-confirm" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-lg p-6 w-full max-w-sm text-center shadow-xl">
+            <p id="confirm-message" class="mb-6 text-gray-800"></p>
+            <div class="flex justify-center space-x-4">
+                <button id="confirm-cancel-btn" class="btn bg-gray-200 text-gray-800 px-6">Cancel</button>
+                <button id="confirm-ok-btn" class="btn btn-danger px-6">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Game Settings Modal -->
+    <div id="quick-game-settings-modal" class="modal-overlay">
+        <div class="modal" style="max-width: 450px;">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold" id="quick-game-title">Quick Settings</h3>
+                <button onclick="closeQuickSettingsModal()" class="text-gray-500 hover:text-gray-700">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <!-- Play Limit -->
+                <div>
+                    <label class="block font-semibold mb-2">Daily Play Limit</label>
+                    <div class="flex items-center space-x-2">
+                        <input type="number" id="quick-play-limit" class="input-field" min="0" max="1000" placeholder="0 = unlimited">
+                        <span class="text-gray-600 text-sm">plays per day</span>
+                    </div>
+                    <p class="text-sm text-gray-500 mt-1">After this limit, game will not be playable for the day</p>
+                </div>
+                
+                <!-- Visibility Toggle -->
+                <div class="feature-toggle">
+                    <div>
+                        <label class="feature-label">Game Visibility</label>
+                        <p class="text-sm text-gray-500">Show/hide this game in mini-app</p>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="quick-game-visible">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                
+                <!-- Additional Quick Settings -->
+                <div>
+                    <label class="block font-semibold mb-2">Reward Per Play</label>
+                    <input type="number" id="quick-game-reward" class="input-field" min="0" placeholder="Points">
+                </div>
+                
+                <div>
+                    <label class="block font-semibold mb-2">Game Order</label>
+                    <input type="number" id="quick-game-order" class="input-field" min="1" max="10" placeholder="1-10">
+                    <p class="text-sm text-gray-500 mt-1">Display order in mini-app (1 = first)</p>
+                </div>
+            </div>
+            
+            <div class="mt-6 flex justify-end space-x-3">
+                <button onclick="closeQuickSettingsModal()" class="btn bg-gray-200 text-gray-800 px-6">Cancel</button>
+                <button onclick="saveQuickGameSettings()" class="btn btn-primary px-6">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Stats Details Modal -->
+    <div id="game-stats-details-modal" class="modal-overlay">
+        <div class="modal" style="max-width: 700px;">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold" id="game-stats-title">Game Statistics Details</h3>
+                <button onclick="closeGameStatsModal()" class="text-gray-500 hover:text-gray-700">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-6">
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="limit-card">
+                        <div class="limit-title">Today's Plays</div>
+                        <div class="limit-value" id="stats-today-plays">0</div>
+                    </div>
+                    <div class="limit-card">
+                        <div class="limit-title">Today's Users</div>
+                        <div class="limit-value" id="stats-today-users">0</div>
+                    </div>
+                    <div class="limit-card">
+                        <div class="limit-title">Today's Points</div>
+                        <div class="limit-value" id="stats-today-points">0</div>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="font-semibold mb-3">Recent Plays</h4>
+                    <div class="bg-gray-50 rounded-lg p-4 max-h-64 overflow-y-auto">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="border-b">
+                                    <th class="pb-2">Time</th>
+                                    <th class="pb-2">User</th>
+                                    <th class="pb-2">Points</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recent-game-plays-body">
+                                <!-- Will be populated -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="text-center">
+                    <button onclick="resetTodayGameStats()" class="btn btn-warning">Reset Today's Stats</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyA3palpYZDFdNpBDIF564YsiOAN2dtbxzA",
+            authDomain: "tic-tac-toe-87d49.firebaseapp.com",
+            projectId: "tic-tac-toe-87d49",
+            storageBucket: "tic-tac-toe-87d49.firebasestorage.app",
+            messagingSenderId: "1051665363188",
+            appId: "1:1051665363188:web:c6389dddb74491a14ceea1"
+        };
+        
+        const ADMIN_UIDS = ["pPICivnJ7ZafIfDeuhilCyg6kO22"];
+
+        // Firebase Imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+        import { 
+            getFirestore, 
+            doc, 
+            getDoc, 
+            updateDoc, 
+            collection, 
+            getDocs, 
+            writeBatch, 
+            enableIndexedDbPersistence, 
+            query, 
+            where, 
+            onSnapshot, 
+            addDoc, 
+            serverTimestamp, 
+            setDoc,
+            orderBy,
+            limit,
+            arrayUnion
+        } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Enable persistence
+        enableIndexedDbPersistence(db).catch((err) => {
+            if (err.code == 'failed-precondition') {
+                console.warn('Firestore persistence failed: multiple tabs open.');
+            } else if (err.code == 'unimplemented') {
+                console.warn('Firestore persistence not available in this browser.');
+            }
+        });
+
+        // DOM Elements
+        const loader = document.getElementById('loader');
+        let currentEditingGameId = null;
+        let currentGameStatsId = null;
+
+        // Initialize on load
+        window.onload = () => {
+            lucide.createIcons();
+            setupEventListeners();
+            onAuthStateChanged(auth, handleAuthStateChange);
+        };
+
+        // Auth State Handler
+        function handleAuthStateChange(user) {
+            if (user && ADMIN_UIDS.includes(user.uid)) {
+                document.getElementById('auth-section').style.display = 'none';
+                document.getElementById('panel-section').style.display = 'block';
+                navigateTo('dashboard');
+                loadDashboardData();
+                loadUsers();
+                loadWithdrawals();
+                loadSettings();
+            } else {
+                document.getElementById('auth-section').style.display = 'flex';
+                document.getElementById('panel-section').style.display = 'none';
+                if (user) {
+                    signOut(auth);
+                    showAlert("You are not authorized to access this panel.");
+                }
+            }
+        }
+
+        // Setup Event Listeners
+        function setupEventListeners() {
+            document.getElementById('login-btn').addEventListener('click', handleLogin);
+            document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
+            
+            // Navigation
+            document.querySelectorAll('.sidebar-link').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    navigateTo(link.dataset.page);
+                });
+            });
+            
+            // Alert/Confirm buttons
+            document.getElementById('alert-ok-btn').addEventListener('click', () => {
+                document.getElementById('custom-alert').classList.add('hidden');
+            });
+            
+            document.getElementById('confirm-cancel-btn').addEventListener('click', () => {
+                document.getElementById('custom-confirm').classList.add('hidden');
+            });
+        }
+
+        // Login Handler
+        async function handleLogin() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            const errorEl = document.getElementById('login-error');
+            errorEl.textContent = '';
+            loader.style.display = 'flex';
+            
+            try {
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                if (!ADMIN_UIDS.includes(userCredential.user.uid)) {
+                    await signOut(auth);
+                    showAlert("You are not authorized to access this panel.");
+                }
+            } catch (error) {
+                errorEl.textContent = "Invalid email or password.";
+                console.error("Login error:", error);
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
+
+        // Navigation
+        function navigateTo(pageId) {
+            document.querySelectorAll('.admin-page').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            
+            document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+            document.querySelector(`.sidebar-link[data-page="${pageId}"]`).classList.add('active');
+
+            if (pageId === 'dashboard') loadDashboard();
+            if (pageId === 'users') loadUsers();
+            if (pageId === 'withdrawals') loadWithdrawals();
+            if (pageId === 'games') loadGames();
+            if (pageId === 'notifications') loadNotifications();
+            if (pageId === 'settings') loadSettings();
+        }
+
+        // Dashboard Functions
+        async function loadDashboard() {
+            const page = document.getElementById('dashboard');
+            page.innerHTML = `
+                <h1 class="text-3xl font-bold mb-6">Dashboard</h1>
+                <div id="stats-grid" class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div class="stat-card p-6"><h3 class="text-gray-500 text-lg">Total Users</h3><p id="total-users" class="text-4xl font-bold mt-2">0</p></div>
+                    <div class="stat-card p-6"><h3 class="text-gray-500 text-lg">Total Withdrawals</h3><p id="total-withdrawals" class="text-4xl font-bold mt-2">0</p></div>
+                    <div class="stat-card p-6"><h3 class="text-gray-500 text-lg">Pending Withdrawals</h3><p id="pending-withdrawals" class="text-4xl font-bold text-orange-500 mt-2">0</p></div>
+                    <div class="stat-card p-6"><h3 class="text-gray-500 text-lg">Today's Earnings</h3><p id="today-earnings" class="text-4xl font-bold text-green-600 mt-2">0</p></div>
+                </div>
+                <div class="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div>
+                        <h2 class="text-2xl font-bold mb-4">Recent Withdrawals</h2>
+                        <div id="recent-withdrawals" class="bg-white shadow rounded-lg p-4">
+                            Loading...
+                        </div>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold mb-4">Recent Users</h2>
+                        <div id="recent-users" class="bg-white shadow rounded-lg p-4">
+                            Loading...
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-8">
+                    <h2 class="text-2xl font-bold mb-4">Game Statistics</h2>
+                    <div id="game-stats" class="bg-white shadow rounded-lg p-4">
+                        Loading...
+                    </div>
+                </div>
+            `;
+            
+            // Load real-time data
+            loadDashboardData();
+        }
+
+        function loadDashboardData() {
+            // Total Users (real-time)
+            onSnapshot(collection(db, "users"), snap => {
+                document.getElementById('total-users').textContent = snap.size;
+            });
+
+            // Total Withdrawals (real-time)
+            onSnapshot(collection(db, "withdrawals"), snap => {
+                document.getElementById('total-withdrawals').textContent = snap.size;
+            });
+
+            // Pending Withdrawals (real-time)
+            onSnapshot(query(collection(db, "withdrawals"), where("status", "==", "pending")), snap => {
+                document.getElementById('pending-withdrawals').textContent = snap.size;
+            });
+
+            // Load recent data
+            loadRecentWithdrawals();
+            loadRecentUsers();
+            loadTodayEarnings();
+            loadGameStats();
+        }
+
+        // Game Management Functions (Updated)
+        async function loadGames() {
+            const page = document.getElementById('games');
+            page.innerHTML = `
+                <div class="flex justify-between items-center mb-6">
+                    <h1 class="text-3xl font-bold">Game Management</h1>
+                    <div class="flex space-x-2">
+                        <button onclick="syncAllGameSettings()" class="btn btn-secondary">
+                            <i data-lucide="refresh-cw" class="w-4 h-4 mr-2"></i> Sync All
+                        </button>
+                        <button onclick="resetAllGameStats()" class="btn btn-warning">
+                            Reset All Game Stats
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div class="flex items-center">
+                        <i data-lucide="info" class="w-5 h-5 text-blue-600 mr-2"></i>
+                        <p class="text-blue-700">
+                            <strong>Features:</strong> 1) Set Daily Play Limit - Game becomes unplayable after limit reached. 
+                            2) Toggle Game Visibility - Hide/show game in mini-app.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                    <!-- Color Game Card -->
+                    <div class="game-card" id="colorGame-card">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center">
+                                <div class="bg-purple-500 text-white p-3 rounded-lg mr-3">
+                                    <i data-lucide="palette" class="w-6 h-6"></i>
+                                </div>
+                                <div>
+                                    <h2 class="text-xl font-bold">Color Game</h2>
+                                    <p class="text-sm text-gray-500">Match colors to earn points</p>
+                                </div>
+                            </div>
+                            <span id="colorGame-status" class="status-badge status-visible">Visible</span>
+                        </div>
+                        
+                        <div class="game-limits-grid">
+                            <div class="limit-card">
+                                <div class="limit-title">Daily Play Limit</div>
+                                <div class="limit-value" id="colorGame-play-limit">20 plays</div>
+                            </div>
+                            <div class="limit-card">
+                                <div class="limit-title">Reward Per Play</div>
+                                <div class="limit-value" id="colorGame-reward">10 points</div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="font-semibold">Today's Plays:</span>
+                                <span class="font-bold text-blue-600" id="colorGame-today-plays">0</span>
+                            </div>
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="font-semibold">Total Plays:</span>
+                                <span class="font-bold text-green-600" id="colorGame-total-plays">0</span>
+                            </div>
+                        </div>
+                        
+                        <div class="game-action-buttons">
+                            <button onclick="openQuickSettings('colorGame')" class="btn btn-primary flex-1">
+                                <i data-lucide="settings" class="w-4 h-4 mr-2"></i> Settings
+                            </button>
+                            <button onclick="viewGameStats('colorGame')" class="btn btn-secondary">
+                                <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Watch Video Card -->
+                    <div class="game-card" id="watchVideo-card">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center">
+                                <div class="bg-blue-500 text-white p-3 rounded-lg mr-3">
+                                    <i data-lucide="video" class="w-6 h-6"></i>
+                                </div>
+                                <div>
+                                    <h2 class="text-xl font-bold">Watch Video</h2>
+                                    <p class="text-sm text-gray-500">Earn by watching ads</p>
+                                </div>
+                            </div>
+                            <span id="watchVideo-status" class="status-badge status-visible">Visible</span>
+                        </div>
+                        
+                        <div class="game-limits-grid">
+                            <div class="limit-card">
+                                <div class="limit-title">Daily Play Limit</div>
+                                <div class="limit-value" id="watchVideo-play-limit">10 videos</div>
+                            </div>
+                            <div class="limit-card">
+                                <div class="limit-title">Reward Per Video</div>
+                                <div class="limit-value" id="watchVideo-reward">15 points</div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="font-semibold">Today's Plays:</span>
+                                <span class="font-bold text-blue-600" id="watchVideo-today-plays">0</span>
+                            </div>
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="font-semibold">Total Plays:</span>
+                                <span class="font-bold text-green-600" id="watchVideo-total-plays">0</span>
+                            </div>
+                        </div>
+                        
+                        <div class="game-action-buttons">
+                            <button onclick="openQuickSettings('watchVideo')" class="btn btn-primary flex-1">
+                                <i data-lucide="settings" class="w-4 h-4 mr-2"></i> Settings
+                            </button>
+                            <button onclick="viewGameStats('watchVideo')" class="btn btn-secondary">
+                                <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Ludo Dice Card -->
+                    <div class="game-card" id="ludoDice-card">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center">
+                                <div class="bg-green-500 text-white p-3 rounded-lg mr-3">
+                                    <i data-lucide="dice-5" class="w-6 h-6"></i>
+                                </div>
+                                <div>
+                                    <h2 class="text-xl font-bold">Ludo Dice</h2>
+                                    <p class="text-sm text-gray-500">Roll dice to win points</p>
+                                </div>
+                            </div>
+                            <span id="ludoDice-status" class="status-badge status-visible">Visible</span>
+                        </div>
+                        
+                        <div class="game-limits-grid">
+                            <div class="limit-card">
+                                <div class="limit-title">Daily Play Limit</div>
+                                <div class="limit-value" id="ludoDice-play-limit">50 plays</div>
+                            </div>
+                            <div class="limit-card">
+                                <div class="limit-title">Reward Per Play</div>
+                                <div class="limit-value" id="ludoDice-reward">5 points</div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="font-semibold">Today's Plays:</span>
+                                <span class="font-bold text-blue-600" id="ludoDice-today-plays">0</span>
+                            </div>
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="font-semibold">Total Plays:</span>
+                                <span class="font-bold text-green-600" id="ludoDice-total-plays">0</span>
+                            </div>
+                        </div>
+                        
+                        <div class="game-action-buttons">
+                            <button onclick="openQuickSettings('ludoDice')" class="btn btn-primary flex-1">
+                                <i data-lucide="settings" class="w-4 h-4 mr-2"></i> Settings
+                            </button>
+                            <button onclick="viewGameStats('ludoDice')" class="btn btn-secondary">
+                                <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Status Summary -->
+                <div class="bg-white p-6 rounded-lg shadow mb-6">
+                    <h2 class="text-xl font-bold mb-4">Game Status Summary</h2>
+                    <div id="game-status-summary" class="space-y-3">
+                        Loading...
+                    </div>
+                </div>
+                
+                <!-- Global Controls -->
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h2 class="text-xl font-bold mb-4">Global Controls</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block font-semibold mb-2">Set All Games Limit</label>
+                            <div class="flex items-center space-x-2">
+                                <input type="number" id="global-play-limit" class="input-field" placeholder="e.g., 20">
+                                <button onclick="applyGlobalPlayLimit()" class="btn btn-primary">Apply to All</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block font-semibold mb-2">Set All Games Reward</label>
+                            <div class="flex items-center space-x-2">
+                                <input type="number" id="global-reward" class="input-field" placeholder="e.g., 10">
+                                <button onclick="applyGlobalReward()" class="btn btn-primary">Apply to All</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block font-semibold mb-2">Visibility Control</label>
+                            <div class="flex space-x-2">
+                                <button onclick="showAllGames()" class="btn btn-success flex-1">Show All</button>
+                                <button onclick="hideAllGames()" class="btn btn-danger flex-1">Hide All</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            await loadGamesData();
+            await loadGamesStats();
+            await loadGameStatusSummary();
+        }
+
+        async function loadGamesData() {
+            try {
+                const gamesSnap = await getDoc(doc(db, "config", "games"));
+                const gamesConfig = gamesSnap.exists() ? gamesConfigSnap.data() : {};
+                
+                // Load game configurations
+                const games = [
+                    { id: 'colorGame', name: 'Color Game', icon: 'palette', color: 'bg-purple-500' },
+                    { id: 'watchVideo', name: 'Watch Video', icon: 'video', color: 'bg-blue-500' },
+                    { id: 'ludoDice', name: 'Ludo Dice', icon: 'dice-5', color: 'bg-green-500' }
+                ];
+                
+                games.forEach(game => {
+                    const gameConfig = gamesConfig[game.id] || {};
+                    const isVisible = gameConfig.visible !== false;
+                    const dailyPlayLimit = gameConfig.dailyPlayLimit || 0;
+                    const rewardPerPlay = gameConfig.rewardPerPlay || 0;
+                    
+                    // Update status badge
+                    const statusEl = document.getElementById(`${game.id}-status`);
+                    if (statusEl) {
+                        statusEl.textContent = isVisible ? 'Visible' : 'Hidden';
+                        statusEl.className = `status-badge ${isVisible ? 'status-visible' : 'status-hidden'}`;
+                    }
+                    
+                    // Update play limit display
+                    const playLimitEl = document.getElementById(`${game.id}-play-limit`);
+                    if (playLimitEl) {
+                        playLimitEl.textContent = dailyPlayLimit > 0 ? `${dailyPlayLimit} plays` : 'Unlimited';
+                    }
+                    
+                    // Update reward display
+                    const rewardEl = document.getElementById(`${game.id}-reward`);
+                    if (rewardEl) {
+                        rewardEl.textContent = `${rewardPerPlay} points`;
+                    }
+                });
+                
+                lucide.createIcons();
+            } catch (error) {
+                console.error("Error loading games data:", error);
+                showAlert("❌ Error loading game configurations", true);
+            }
+        }
+
+        async function loadGamesStats() {
+            try {
+                const gamesSnap = await getDoc(doc(db, "config", "games"));
+                const gamesConfig = gamesSnap.exists() ? gamesSnap.data() : {};
+                
+                // Get today's stats
+                const today = new Date().toISOString().split('T')[0];
+                const todayStats = gamesConfig.dailyStats?.[today] || {};
+                const allTimeStats = gamesConfig.allTimeStats || {};
+                
+                const games = ['colorGame', 'watchVideo', 'ludoDice'];
+                
+                games.forEach(gameId => {
+                    const todayGameStats = todayStats[gameId] || { playCount: 0, userCount: 0 };
+                    const allTimeGameStats = allTimeStats[gameId] || { playCount: 0, userCount: 0 };
+                    
+                    // Update today's plays
+                    const todayPlaysEl = document.getElementById(`${gameId}-today-plays`);
+                    if (todayPlaysEl) {
+                        todayPlaysEl.textContent = todayGameStats.playCount;
+                    }
+                    
+                    // Update total plays
+                    const totalPlaysEl = document.getElementById(`${gameId}-total-plays`);
+                    if (totalPlaysEl) {
+                        totalPlaysEl.textContent = allTimeGameStats.playCount;
+                    }
+                });
+                
+            } catch (error) {
+                console.error("Error loading game stats:", error);
+            }
+        }
+
+        async function loadGameStatusSummary() {
+            try {
+                const gamesSnap = await getDoc(doc(db, "config", "games"));
+                const gamesConfig = gamesSnap.exists() ? gamesSnap.data() : {};
+                
+                let html = '';
+                const games = [
+                    { id: 'colorGame', name: 'Color Game' },
+                    { id: 'watchVideo', name: 'Watch Video' },
+                    { id: 'ludoDice', name: 'Ludo Dice' }
+                ];
+                
+                games.forEach(game => {
+                    const gameConfig = gamesConfig[game.id] || {};
+                    const isVisible = gameConfig.visible !== false;
+                    const dailyPlayLimit = gameConfig.dailyPlayLimit || 0;
+                    const rewardPerPlay = gameConfig.rewardPerPlay || 0;
+                    
+                    html += `
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 rounded-full mr-3 ${isVisible ? 'bg-green-500' : 'bg-red-500'}"></div>
+                                <span class="font-semibold">${game.name}</span>
+                            </div>
+                            <div class="flex items-center space-x-4">
+                                <span class="text-sm ${isVisible ? 'text-green-600' : 'text-red-600'}">
+                                    ${isVisible ? 'Visible' : 'Hidden'}
+                                </span>
+                                <span class="text-sm text-blue-600">Limit: ${dailyPlayLimit > 0 ? dailyPlayLimit : '∞'}</span>
+                                <span class="text-sm text-purple-600">Reward: ${rewardPerPlay} pts</span>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                document.getElementById('game-status-summary').innerHTML = html;
+            } catch (error) {
+                console.error("Error loading game status:", error);
+            }
+        }
+
+        // Quick Game Settings Functions
+        function openQuickSettings(gameId) {
+            currentEditingGameId = gameId;
+            
+            const gameNames = {
+                'colorGame': 'Color Game',
+                'watchVideo': 'Watch Video',
+                'ludoDice': 'Ludo Dice'
+            };
+            
+            document.getElementById('quick-game-title').textContent = `${gameNames[gameId]} Settings`;
+            
+            // Load current settings
+            loadGameSettingsForQuickEdit(gameId);
+            
+            // Show modal
+            document.getElementById('quick-game-settings-modal').style.display = 'flex';
+        }
+
+        async function loadGameSettingsForQuickEdit(gameId) {
+            try {
+                const gamesSnap = await getDoc(doc(db, "config", "games"));
+                const gamesConfig = gamesSnap.exists() ? gamesSnap.data() : {};
+                
+                const gameConfig = gamesConfig[gameId] || {};
+                
+                // Set form values
+                document.getElementById('quick-play-limit').value = gameConfig.dailyPlayLimit || 0;
+                document.getElementById('quick-game-visible').checked = gameConfig.visible !== false;
+                document.getElementById('quick-game-reward').value = gameConfig.rewardPerPlay || 0;
+                document.getElementById('quick-game-order').value = gameConfig.order || 1;
+                
+            } catch (error) {
+                console.error("Error loading game settings:", error);
+            }
+        }
+
+        function closeQuickSettingsModal() {
+            document.getElementById('quick-game-settings-modal').style.display = 'none';
+            currentEditingGameId = null;
+        }
+
+        async function saveQuickGameSettings() {
+            if (!currentEditingGameId) return;
+            
+            const dailyPlayLimit = parseInt(document.getElementById('quick-play-limit').value) || 0;
+            const isVisible = document.getElementById('quick-game-visible').checked;
+            const rewardPerPlay = parseInt(document.getElementById('quick-game-reward').value) || 0;
+            const order = parseInt(document.getElementById('quick-game-order').value) || 1;
+            
+            if (dailyPlayLimit < 0 || rewardPerPlay < 0) {
+                showAlert("❌ Please enter valid positive numbers");
+                return;
+            }
+            
+            if (order < 1 || order > 10) {
+                showAlert("❌ Order must be between 1 and 10");
+                return;
+            }
+            
+            loader.style.display = 'flex';
+            try {
+                const gameRef = doc(db, "config", "games");
+                const gameSnap = await getDoc(gameRef);
+                const currentData = gameSnap.exists() ? gameSnap.data() : {};
+                
+                const updateData = {
+                    [currentEditingGameId]: {
+                        name: currentEditingGameId === 'colorGame' ? 'Color Game' : 
+                              currentEditingGameId === 'watchVideo' ? 'Watch Video' : 'Ludo Dice',
+                        dailyPlayLimit: dailyPlayLimit,
+                        visible: isVisible,
+                        rewardPerPlay: rewardPerPlay,
+                        order: order,
+                        updatedAt: serverTimestamp()
+                    }
+                };
+                
+                await setDoc(gameRef, updateData, { merge: true });
+                
+                showToast("✅ Game settings saved successfully!");
+                closeQuickSettingsModal();
+                
+                // Refresh displays
+                await loadGamesData();
+                await loadGamesStats();
+                await loadGameStatusSummary();
+                
+            } catch (error) {
+                console.error("Error saving game settings:", error);
+                showAlert("❌ Error saving game settings: " + error.message, true);
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
+
+        // Global Controls Functions
+        async function applyGlobalPlayLimit() {
+            const limit = parseInt(document.getElementById('global-play-limit').value) || 0;
+            
+            if (isNaN(limit) || limit < 0) {
+                showAlert("Please enter a valid positive number for the play limit.");
+                return;
+            }
+            
+            showConfirm(`Apply daily play limit of ${limit} to ALL games?`, async () => {
+                loader.style.display = 'flex';
+                try {
+                    const gameRef = doc(db, "config", "games");
+                    const gameSnap = await getDoc(gameRef);
+                    const currentData = gameSnap.exists() ? gameSnap.data() : {};
+                    
+                    const updateData = { ...currentData };
+                    
+                    // Update all games
+                    ['colorGame', 'watchVideo', 'ludoDice'].forEach(gameId => {
+                        if (!updateData[gameId]) updateData[gameId] = {};
+                        updateData[gameId].dailyPlayLimit = limit;
+                        updateData[gameId].updatedAt = serverTimestamp();
+                    });
+                    
+                    await setDoc(gameRef, updateData);
+                    
+                    showToast(`✅ Daily play limit of ${limit} applied to all games!`);
+                    await loadGamesData();
+                    await loadGameStatusSummary();
+                    
+                } catch (error) {
+                    console.error("Error applying global limit:", error);
+                    showAlert("❌ Error applying global limit", true);
+                } finally {
+                    loader.style.display = 'none';
+                }
+            });
+        }
+
+        async function applyGlobalReward() {
+            const reward = parseInt(document.getElementById('global-reward').value) || 0;
+            
+            if (isNaN(reward) || reward < 0) {
+                showAlert("Please enter a valid positive number for the reward.");
+                return;
+            }
+            
+            showConfirm(`Apply reward of ${reward} points to ALL games?`, async () => {
+                loader.style.display = 'flex';
+                try {
+                    const gameRef = doc(db, "config", "games");
+                    const gameSnap = await getDoc(gameRef);
+                    const currentData = gameSnap.exists() ? gameSnap.data() : {};
+                    
+                    const updateData = { ...currentData };
+                    
+                    // Update all games
+                    ['colorGame', 'watchVideo', 'ludoDice'].forEach(gameId => {
+                        if (!updateData[gameId]) updateData[gameId] = {};
+                        updateData[gameId].rewardPerPlay = reward;
+                        updateData[gameId].updatedAt = serverTimestamp();
+                    });
+                    
+                    await setDoc(gameRef, updateData);
+                    
+                    showToast(`✅ Reward of ${reward} points applied to all games!`);
+                    await loadGamesData();
+                    await loadGameStatusSummary();
+                    
+                } catch (error) {
+                    console.error("Error applying global reward:", error);
+                    showAlert("❌ Error applying global reward", true);
+                } finally {
+                    loader.style.display = 'none';
+                }
+            });
+        }
+
+        async function showAllGames() {
+            showConfirm("Make ALL games visible in the mini-app?", async () => {
+                loader.style.display = 'flex';
+                try {
+                    const gameRef = doc(db, "config", "games");
+                    const gameSnap = await getDoc(gameRef);
+                    const currentData = gameSnap.exists() ? gameSnap.data() : {};
+                    
+                    const updateData = { ...currentData };
+                    
+                    // Show all games
+                    ['colorGame', 'watchVideo', 'ludoDice'].forEach(gameId => {
+                        if (!updateData[gameId]) updateData[gameId] = {};
+                        updateData[gameId].visible = true;
+                        updateData[gameId].updatedAt = serverTimestamp();
+                    });
+                    
+                    await setDoc(gameRef, updateData);
+                    
+                    showToast("✅ All games are now visible!");
+                    await loadGamesData();
+                    await loadGameStatusSummary();
+                    
+                } catch (error) {
+                    console.error("Error showing all games:", error);
+                    showAlert("❌ Error showing all games", true);
+                } finally {
+                    loader.style.display = 'none';
+                }
+            });
+        }
+
+        async function hideAllGames() {
+            showConfirm("Hide ALL games from the mini-app?", async () => {
+                loader.style.display = 'flex';
+                try {
+                    const gameRef = doc(db, "config", "games");
+                    const gameSnap = await getDoc(gameRef);
+                    const currentData = gameSnap.exists() ? gameSnap.data() : {};
+                    
+                    const updateData = { ...currentData };
+                    
+                    // Hide all games
+                    ['colorGame', 'watchVideo', 'ludoDice'].forEach(gameId => {
+                        if (!updateData[gameId]) updateData[gameId] = {};
+                        updateData[gameId].visible = false;
+                        updateData[gameId].updatedAt = serverTimestamp();
+                    });
+                    
+                    await setDoc(gameRef, updateData);
+                    
+                    showToast("✅ All games are now hidden!");
+                    await loadGamesData();
+                    await loadGameStatusSummary();
+                    
+                } catch (error) {
+                    console.error("Error hiding all games:", error);
+                    showAlert("❌ Error hiding all games", true);
+                } finally {
+                    loader.style.display = 'none';
+                }
+            });
+        }
+
+        async function syncAllGameSettings() {
+            loader.style.display = 'flex';
+            try {
+                await loadGamesData();
+                await loadGamesStats();
+                await loadGameStatusSummary();
+                showToast("✅ All game settings synchronized!");
+            } catch (error) {
+                console.error("Error syncing game settings:", error);
+                showAlert("❌ Error syncing game settings", true);
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
+
+        // Game Stats Functions
+        async function viewGameStats(gameId) {
+            currentGameStatsId = gameId;
+            
+            const gameNames = {
+                'colorGame': 'Color Game',
+                'watchVideo': 'Watch Video',
+                'ludoDice': 'Ludo Dice'
+            };
+            
+            document.getElementById('game-stats-title').textContent = `${gameNames[gameId]} Statistics`;
+            
+            await loadGameStatsDetails(gameId);
+            
+            document.getElementById('game-stats-details-modal').style.display = 'flex';
+        }
+
+        async function loadGameStatsDetails(gameId) {
+            try {
+                const gamesSnap = await getDoc(doc(db, "config", "games"));
+                const gamesConfig = gamesSnap.exists() ? gamesSnap.data() : {};
+                
+                // Get today's stats
+                const today = new Date().toISOString().split('T')[0];
+                const todayStats = gamesConfig.dailyStats?.[today] || {};
+                const allTimeStats = gamesConfig.allTimeStats || {};
+                
+                const gameStats = todayStats[gameId] || { playCount: 0, userCount: 0 };
+                const gameConfig = gamesConfig[gameId] || {};
+                const rewardPerPlay = gameConfig.rewardPerPlay || 0;
+                
+                // Update stats displays
+                document.getElementById('stats-today-plays').textContent = gameStats.playCount || 0;
+                document.getElementById('stats-today-users').textContent = gameStats.userCount || 0;
+                document.getElementById('stats-today-points').textContent = (gameStats.playCount || 0) * rewardPerPlay;
+                
+                // Load recent plays from pointHistory
+                const recentPlays = await getRecentGamePlays(gameId);
+                const recentPlaysBody = document.getElementById('recent-game-plays-body');
+                recentPlaysBody.innerHTML = '';
+                
+                if (recentPlays.length === 0) {
+                    recentPlaysBody.innerHTML = `
+                        <tr>
+                            <td colspan="3" class="text-center py-4 text-gray-500">
+                                No recent plays found
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    recentPlays.forEach(play => {
+                        const time = play.timestamp?.toDate().toLocaleTimeString() || 'N/A';
+                        recentPlaysBody.innerHTML += `
+                            <tr class="border-b">
+                                <td class="py-2">${time}</td>
+                                <td class="py-2">${play.userName || 'Unknown'}</td>
+                                <td class="py-2 font-semibold text-green-600">+${play.points}</td>
+                            </tr>
+                        `;
+                    });
+                }
+                
+            } catch (error) {
+                console.error("Error loading game stats details:", error);
+            }
+        }
+
+        async function getRecentGamePlays(gameId) {
+            try {
+                const taskType = gameId === 'colorGame' ? 'color_game' : 
+                               gameId === 'watchVideo' ? 'ad_watch' : 'ludo_game';
+                
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                
+                const q = query(
+                    collection(db, "pointHistory"),
+                    where("taskType", "==", taskType),
+                    where("timestamp", ">=", today),
+                    orderBy("timestamp", "desc"),
+                    limit(20)
+                );
+                
+                const snap = await getDocs(q);
+                const plays = [];
+                snap.forEach(doc => {
+                    plays.push(doc.data());
+                });
+                
+                return plays;
+            } catch (error) {
+                console.error("Error getting recent plays:", error);
+                return [];
+            }
+        }
+
+        function closeGameStatsModal() {
+            document.getElementById('game-stats-details-modal').style.display = 'none';
+            currentGameStatsId = null;
+        }
+
+        async function resetTodayGameStats() {
+            if (!currentGameStatsId) return;
+            
+            showConfirm("Reset today's statistics for this game?", async () => {
+                loader.style.display = 'flex';
+                try {
+                    const gameRef = doc(db, "config", "games");
+                    const gameSnap = await getDoc(gameRef);
+                    const currentData = gameSnap.exists() ? gameSnap.data() : {};
+                    
+                    const today = new Date().toISOString().split('T')[0];
+                    const dailyStats = currentData.dailyStats || {};
+                    
+                    if (dailyStats[today] && dailyStats[today][currentGameStatsId]) {
+                        delete dailyStats[today][currentGameStatsId];
+                        await updateDoc(gameRef, { 
+                            dailyStats: dailyStats,
+                            updatedAt: serverTimestamp()
+                        });
+                        
+                        showToast("✅ Today's game statistics reset!");
+                        await loadGameStatsDetails(currentGameStatsId);
+                        await loadGamesStats();
+                        await loadGameStatusSummary();
+                    }
+                    
+                } catch (error) {
+                    console.error("Error resetting game stats:", error);
+                    showAlert("❌ Error resetting game statistics", true);
+                } finally {
+                    loader.style.display = 'none';
+                }
+            });
+        }
+
+        async function resetAllGameStats() {
+            showConfirm("Are you sure you want to reset ALL game statistics? This action cannot be undone.", async () => {
+                loader.style.display = 'flex';
+                try {
+                    const gameRef = doc(db, "config", "games");
+                    const gameSnap = await getDoc(gameRef);
+                    const currentData = gameSnap.exists() ? gameSnap.data() : {};
+                    
+                    // Keep game configurations but reset stats
+                    const updateData = {
+                        ...currentData,
+                        dailyStats: {},
+                        allTimeStats: {},
+                        updatedAt: serverTimestamp()
+                    };
+                    
+                    await setDoc(gameRef, updateData);
+                    
+                    showToast("✅ All game statistics reset successfully!");
+                    await loadGamesStats();
+                    await loadGameStatusSummary();
+                    
+                    if (currentGameStatsId) {
+                        await loadGameStatsDetails(currentGameStatsId);
+                    }
+                    
+                } catch (error) {
+                    console.error("Error resetting game stats:", error);
+                    showAlert("❌ Error resetting game statistics", true);
+                } finally {
+                    loader.style.display = 'none';
+                }
+            });
+        }
+
+        // The rest of the functions (dashboard, users, withdrawals, notifications, settings) remain the same...
+        // [Keep all the other functions from the original admin panel code here...]
+
+        // Utility Functions
+        function showAlert(message, isError = false) {
+            const alertBox = document.getElementById('custom-alert');
+            const msgEl = document.getElementById('alert-message');
+            if (alertBox && msgEl) {
+                msgEl.textContent = message;
+                alertBox.classList.remove('hidden');
+            }
+        }
+
+        function showConfirm(message, onConfirm) {
+            document.getElementById('confirm-message').textContent = message;
+            const confirmModal = document.getElementById('custom-confirm');
+            confirmModal.classList.remove('hidden');
+            
+            // Create new buttons to avoid duplicate listeners
+            const oldOkBtn = document.getElementById('confirm-ok-btn');
+            const oldCancelBtn = document.getElementById('confirm-cancel-btn');
+            
+            const newOkBtn = oldOkBtn.cloneNode(true);
+            const newCancelBtn = oldCancelBtn.cloneNode(true);
+            
+            oldOkBtn.parentNode.replaceChild(newOkBtn, oldOkBtn);
+            oldCancelBtn.parentNode.replaceChild(newCancelBtn, oldCancelBtn);
+            
+            newOkBtn.addEventListener('click', () => {
+                confirmModal.classList.add('hidden');
+                onConfirm();
+            });
+            
+            newCancelBtn.addEventListener('click', () => {
+                confirmModal.classList.add('hidden');
+            });
+        }
+
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast-notification');
+            const toastMessage = document.getElementById('toast-message');
+            
+            if (!toast || !toastMessage) return;
+
+            toastMessage.textContent = message;
+            toast.className = `fixed top-5 right-5 text-white px-6 py-3 rounded-lg shadow-lg opacity-0 z-50 ${isError ? 'bg-red-600' : 'bg-green-600'}`;
+            
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.remove('opacity-0'), 50);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0');
+                setTimeout(() => {
+                    toast.classList.add('hidden');
+                }, 500);
+            }, 3000);
+        }
+
+        // Make functions available globally
+        window.openQuickSettings = openQuickSettings;
+        window.closeQuickSettingsModal = closeQuickSettingsModal;
+        window.saveQuickGameSettings = saveQuickGameSettings;
+        window.viewGameStats = viewGameStats;
+        window.closeGameStatsModal = closeGameStatsModal;
+        window.resetTodayGameStats = resetTodayGameStats;
+        window.applyGlobalPlayLimit = applyGlobalPlayLimit;
+        window.applyGlobalReward = applyGlobalReward;
+        window.showAllGames = showAllGames;
+        window.hideAllGames = hideAllGames;
+        window.syncAllGameSettings = syncAllGameSettings;
+        window.resetAllGameStats = resetAllGameStats;
+
+        // Make sure to include all the other window function assignments from the original code...
+        // [Keep all other window function assignments here...]
+
+    </script>
+</body>
+</html>

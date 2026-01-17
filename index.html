@@ -1,0 +1,2844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CashReward Admin Panel - Game Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .admin-page { display: none; }
+        .admin-page.active { display: block; animation: fadeIn 0.5s; }
+        .sidebar-link { transition: all 0.2s; border-left: 3px solid transparent; }
+        .sidebar-link.active, .sidebar-link:hover { background-color: #4f46e5; color: white; border-left-color: #818cf8; }
+        .stat-card { background: white; border-radius: 0.5rem; box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px 0 rgba(0,0,0,0.06); }
+        .input-field { border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; border-radius: 0.375rem; width: 100%; }
+        .btn { padding: 0.5rem 1rem; border-radius: 0.375rem; font-weight: 600; transition: all 0.2s; cursor: pointer; }
+        .btn:active { transform: scale(0.95); }
+        .btn-primary { background-color: #4f46e5; color: white; border: none; }
+        .btn-primary:hover { background-color: #4338ca; }
+        .btn-secondary { background-color: #64748b; color: white; border: none; }
+        .btn-danger { background-color: #ef4444; color: white; border: none; }
+        .btn-success { background-color: #10b981; color: white; border: none; }
+        .btn-warning { background-color: #f59e0b; color: white; border: none; }
+        .btn-sm { padding: 0.25rem 0.5rem; font-size: 0.875rem; }
+        #toast-notification { transition: opacity 0.5s ease-in-out; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid #e5e7eb; }
+        th { background-color: #f9fafb; font-weight: 600; }
+        .status-badge { padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
+        .status-active { background-color: #d1fae5; color: #065f46; }
+        .status-blocked { background-color: #fee2e2; color: #991b1b; }
+        .status-pending { background-color: #fef3c7; color: #92400e; }
+        .status-approved { background-color: #d1fae5; color: #065f46; }
+        .status-rejected { background-color: #fee2e2; color: #991b1b; }
+        .status-visible { background-color: #3b82f6; color: white; }
+        .status-hidden { background-color: #6b7280; color: white; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; }
+        .modal { background: white; border-radius: 0.5rem; max-width: 500px; margin: 2rem auto; padding: 1.5rem; max-height: 80vh; overflow-y: auto; }
+        .point-input { width: 100px; text-align: center; }
+        .view-points-btn { background-color: #3b82f6; color: white; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; }
+        .game-card { background: white; border-radius: 0.5rem; padding: 1.5rem; box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1); }
+        .time-input { width: 120px; }
+        .switch { position: relative; display: inline-block; width: 60px; height: 34px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; }
+        .slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; transition: .4s; }
+        input:checked + .slider { background-color: #10b981; }
+        input:checked + .slider:before { transform: translateX(26px); }
+        .slider.round { border-radius: 34px; }
+        .slider.round:before { border-radius: 50%; }
+        .website-item { display: flex; gap: 10px; margin-bottom: 10px; padding: 10px; border: 1px solid #e5e7eb; border-radius: 8px; background: #f9fafb; }
+        .website-field { flex: 1; }
+        .website-field input { width: 100%; }
+        .feature-toggle { display: flex; align-items: center; justify-content: space-between; margin: 1rem 0; }
+        .feature-label { font-weight: 600; color: #374151; }
+        .game-limits-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.5rem 0; }
+        .limit-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; }
+        .limit-title { font-size: 0.875rem; font-weight: 600; color: #475569; margin-bottom: 0.5rem; }
+        .limit-value { font-size: 1.25rem; font-weight: 700; color: #1e40af; }
+        .game-action-buttons { display: flex; gap: 0.5rem; margin-top: 1rem; }
+        .settings-section { margin-bottom: 2rem; }
+        .settings-card { background: white; border-radius: 0.5rem; padding: 1.5rem; box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1); }
+        .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+        .tab-button { padding: 0.5rem 1rem; background: #f1f5f9; border-radius: 0.375rem; cursor: pointer; }
+        .tab-button.active { background: #3b82f6; color: white; }
+        .banner-upload { border: 2px dashed #cbd5e1; padding: 2rem; text-align: center; border-radius: 0.5rem; cursor: pointer; }
+        .banner-upload:hover { border-color: #3b82f6; }
+        .banner-preview { width: 100%; max-height: 200px; object-fit: cover; border-radius: 0.5rem; margin-top: 1rem; }
+        .social-task-item { border: 1px solid #e5e7eb; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem; background: #f9fafb; }
+        .icon-selector { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5rem; margin-top: 0.5rem; }
+        .icon-option { padding: 0.5rem; text-align: center; border: 1px solid #e5e7eb; border-radius: 0.25rem; cursor: pointer; }
+        .icon-option:hover, .icon-option.selected { background: #3b82f6; color: white; border-color: #3b82f6; }
+        .export-btn { margin: 0.5rem; }
+    </style>
+</head>
+<body>
+    <!-- Loader -->
+    <div id="loader" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-indigo-500"></div>
+    </div>
+    
+    <!-- Login Section -->
+    <div id="auth-section" class="min-h-screen flex items-center justify-center bg-gray-100">
+        <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-sm">
+            <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">Admin Panel Login</h2>
+            <input id="login-email" type="email" placeholder="Email" class="input-field mb-4">
+            <input id="login-password" type="password" placeholder="Password" class="input-field mb-4">
+            <button id="login-btn" class="btn btn-primary w-full">Login</button>
+            <p id="login-error" class="text-red-500 text-sm mt-2 text-center"></p>
+        </div>
+    </div>
+
+    <!-- Main Admin Panel -->
+    <div id="panel-section" class="hidden">
+        <div class="flex h-screen bg-gray-100">
+            <!-- Sidebar -->
+            <aside class="w-64 bg-gray-800 text-gray-200 flex-shrink-0">
+                <div class="p-4 text-2xl font-bold text-white">CashReward</div>
+                <nav class="mt-6">
+                    <a href="#" data-page="dashboard" class="sidebar-link active flex items-center py-3 px-4">
+                        <i data-lucide="layout-dashboard" class="w-5 h-5 mr-3"></i>Dashboard
+                    </a>
+                    <a href="#" data-page="users" class="sidebar-link flex items-center py-3 px-4">
+                        <i data-lucide="users" class="w-5 h-5 mr-3"></i>Users
+                    </a>
+                    <a href="#" data-page="withdrawals" class="sidebar-link flex items-center py-3 px-4">
+                        <i data-lucide="banknote" class="w-5 h-5 mr-3"></i>Withdrawals
+                    </a>
+                    <a href="#" data-page="games" class="sidebar-link flex items-center py-3 px-4">
+                        <i data-lucide="gamepad-2" class="w-5 h-5 mr-3"></i>Game Management
+                    </a>
+                    <a href="#" data-page="notifications" class="sidebar-link flex items-center py-3 px-4">
+                        <i data-lucide="send" class="w-5 h-5 mr-3"></i>App Notices
+                    </a>
+                    <a href="#" data-page="social-tasks" class="sidebar-link flex items-center py-3 px-4">
+                        <i data-lucide="thumbs-up" class="w-5 h-5 mr-3"></i>Social Tasks
+                    </a>
+                    <a href="#" data-page="banners" class="sidebar-link flex items-center py-3 px-4">
+                        <i data-lucide="image" class="w-5 h-5 mr-3"></i>Slider Banners
+                    </a>
+                    <a href="#" data-page="settings" class="sidebar-link flex items-center py-3 px-4">
+                        <i data-lucide="settings" class="w-5 h-5 mr-3"></i>App Settings
+                    </a>
+                    <a href="#" data-page="system" class="sidebar-link flex items-center py-3 px-4">
+                        <i data-lucide="database" class="w-5 h-5 mr-3"></i>System Tools
+                    </a>
+                </nav>
+                <div class="absolute bottom-0 w-64 p-4">
+                    <button id="logout-btn" class="w-full bg-red-600 text-white py-2 rounded-lg">Logout</button>
+                </div>
+            </aside>
+            
+            <!-- Main Content -->
+            <main class="flex-1 p-6 overflow-y-auto">
+                <div id="dashboard" class="admin-page active"></div>
+                <div id="users" class="admin-page"></div>
+                <div id="withdrawals" class="admin-page"></div>
+                <div id="games" class="admin-page"></div>
+                <div id="notifications" class="admin-page"></div>
+                <div id="social-tasks" class="admin-page"></div>
+                <div id="banners" class="admin-page"></div>
+                <div id="settings" class="admin-page"></div>
+                <div id="system" class="admin-page"></div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast-notification" class="hidden fixed top-5 right-5 text-white px-6 py-3 rounded-lg shadow-lg opacity-0 z-50">
+        <p id="toast-message"></p>
+    </div>
+
+    <!-- Alert Modal -->
+    <div id="custom-alert" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-lg p-6 w-full max-w-sm text-center shadow-xl">
+            <p id="alert-message" class="mb-4 text-gray-800"></p>
+            <button id="alert-ok-btn" class="btn btn-primary px-6">OK</button>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="custom-confirm" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-lg p-6 w-full max-w-sm text-center shadow-xl">
+            <p id="confirm-message" class="mb-6 text-gray-800"></p>
+            <div class="flex justify-center space-x-4">
+                <button id="confirm-cancel-btn" class="btn bg-gray-200 text-gray-800 px-6">Cancel</button>
+                <button id="confirm-ok-btn" class="btn btn-danger px-6">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Game Settings Modal -->
+    <div id="quick-game-settings-modal" class="modal-overlay">
+        <div class="modal" style="max-width: 450px;">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold" id="quick-game-title">Quick Settings</h3>
+                <button onclick="closeQuickSettingsModal()" class="text-gray-500 hover:text-gray-700">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <!-- Play Limit -->
+                <div>
+                    <label class="block font-semibold mb-2">Daily Play Limit</label>
+                    <div class="flex items-center space-x-2">
+                        <input type="number" id="quick-play-limit" class="input-field" min="0" max="1000" placeholder="0 = unlimited">
+                        <span class="text-gray-600 text-sm">plays per day</span>
+                    </div>
+                    <p class="text-sm text-gray-500 mt-1">After this limit, game will not be playable for the day</p>
+                </div>
+                
+                <!-- Visibility Toggle -->
+                <div class="feature-toggle">
+                    <div>
+                        <label class="feature-label">Game Visibility</label>
+                        <p class="text-sm text-gray-500">Show/hide this game in mini-app</p>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="quick-game-visible">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                
+                <!-- Additional Quick Settings -->
+                <div>
+                    <label class="block font-semibold mb-2">Reward Per Play</label>
+                    <input type="number" id="quick-game-reward" class="input-field" min="0" placeholder="Points">
+                </div>
+                
+                <div>
+                    <label class="block font-semibold mb-2">Game Order</label>
+                    <input type="number" id="quick-game-order" class="input-field" min="1" max="10" placeholder="1-10">
+                    <p class="text-sm text-gray-500 mt-1">Display order in mini-app (1 = first)</p>
+                </div>
+            </div>
+            
+            <div class="mt-6 flex justify-end space-x-3">
+                <button onclick="closeQuickSettingsModal()" class="btn bg-gray-200 text-gray-800 px-6">Cancel</button>
+                <button onclick="saveQuickGameSettings()" class="btn btn-primary px-6">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit User Points Modal -->
+    <div id="edit-points-modal" class="modal-overlay">
+        <div class="modal">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold">Edit User Points</h3>
+                <button onclick="closeEditPointsModal()" class="text-gray-500 hover:text-gray-700">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="mb-4">
+                <p class="text-gray-600">User: <span id="edit-user-name" class="font-semibold"></span></p>
+                <p class="text-gray-600">Email: <span id="edit-user-email" class="font-semibold"></span></p>
+                <p class="text-gray-600">Current Balance: <span id="edit-current-balance" class="font-semibold"></span></p>
+            </div>
+            <div class="mb-6">
+                <label class="block font-semibold mb-2">New Balance</label>
+                <input type="number" id="new-balance-input" class="input-field" placeholder="Enter new balance">
+            </div>
+            <div class="flex justify-end space-x-2">
+                <button onclick="closeEditPointsModal()" class="btn bg-gray-200 text-gray-800">Cancel</button>
+                <button onclick="saveUserPoints()" class="btn btn-primary">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Point History Modal -->
+    <div id="user-point-history-modal" class="modal-overlay">
+        <div class="modal" style="max-width: 800px;">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold">Point History - <span id="history-user-name"></span></h3>
+                <button onclick="closePointHistoryModal()" class="text-gray-500 hover:text-gray-700">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="mb-4">
+                <p class="text-gray-600">User ID: <span id="history-user-id" class="font-semibold"></span></p>
+                <p class="text-gray-600">Total Points Earned: <span id="total-points-earned" class="font-semibold text-green-600"></span></p>
+            </div>
+            <div class="overflow-y-auto max-h-96">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50 sticky top-0">
+                        <tr>
+                            <th class="px-4 py-2">Date & Time</th>
+                            <th class="px-4 py-2">Task</th>
+                            <th class="px-4 py-2">Points</th>
+                            <th class="px-4 py-2">Country</th>
+                            <th class="px-4 py-2">Details</th>
+                        </tr>
+                    </thead>
+                    <tbody id="user-point-history-body"></tbody>
+                </table>
+            </div>
+            <div class="mt-4 flex justify-end">
+                <button onclick="closePointHistoryModal()" class="btn bg-gray-200 text-gray-800">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- App Notice Editor Modal -->
+    <div id="app-notice-modal" class="modal-overlay">
+        <div class="modal" style="max-width: 600px;">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold">Create App Notice</h3>
+                <button onclick="closeAppNoticeModal()" class="text-gray-500 hover:text-gray-700">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block font-semibold mb-2">Notice Type</label>
+                    <select id="notice-type" class="input-field">
+                        <option value="info">Information</option>
+                        <option value="warning">Warning</option>
+                        <option value="success">Success</option>
+                        <option value="error">Error</option>
+                        <option value="premium">Premium</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block font-semibold mb-2">Title</label>
+                    <input type="text" id="notice-title" class="input-field" placeholder="Enter notice title">
+                </div>
+                
+                <div>
+                    <label class="block font-semibold mb-2">Message</label>
+                    <textarea id="notice-message" rows="4" class="input-field" placeholder="Enter notice message"></textarea>
+                </div>
+                
+                <div class="feature-toggle">
+                    <div>
+                        <label class="feature-label">Show "Don't Show Again" Button</label>
+                        <p class="text-sm text-gray-500">Allow users to dismiss permanently</p>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="notice-cancelable" checked>
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                
+                <div class="feature-toggle">
+                    <div>
+                        <label class="feature-label">Enabled</label>
+                        <p class="text-sm text-gray-500">Show this notice to users</p>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="notice-enabled" checked>
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="mt-6 flex justify-end space-x-3">
+                <button onclick="closeAppNoticeModal()" class="btn bg-gray-200 text-gray-800 px-6">Cancel</button>
+                <button onclick="saveAppNotice()" class="btn btn-primary px-6">Save Notice</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Social Task Editor Modal -->
+    <div id="social-task-modal" class="modal-overlay">
+        <div class="modal" style="max-width: 600px;">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold">Edit Social Task</h3>
+                <button onclick="closeSocialTaskModal()" class="text-gray-500 hover:text-gray-700">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block font-semibold mb-2">Task Name</label>
+                    <input type="text" id="social-task-name" class="input-field" placeholder="e.g., Follow us on Twitter">
+                </div>
+                
+                <div>
+                    <label class="block font-semibold mb-2">Icon</label>
+                    <input type="text" id="social-task-icon" class="input-field mb-2" placeholder="FontAwesome icon name (e.g., twitter)">
+                    <p class="text-sm text-gray-500 mb-2">Or select from common icons:</p>
+                    <div class="icon-selector">
+                        <div class="icon-option" onclick="selectSocialIcon('twitter')">🐦 Twitter</div>
+                        <div class="icon-option" onclick="selectSocialIcon('facebook')">📘 Facebook</div>
+                        <div class="icon-option" onclick="selectSocialIcon('instagram')">📸 Instagram</div>
+                        <div class="icon-option" onclick="selectSocialIcon('youtube')">📺 YouTube</div>
+                        <div class="icon-option" onclick="selectSocialIcon('telegram')">✈️ Telegram</div>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block font-semibold mb-2">Link URL</label>
+                    <input type="url" id="social-task-link" class="input-field" placeholder="https://example.com">
+                </div>
+                
+                <div>
+                    <label class="block font-semibold mb-2">Reward (Points)</label>
+                    <input type="number" id="social-task-reward" class="input-field" placeholder="e.g., 50" min="1">
+                </div>
+                
+                <div class="feature-toggle">
+                    <div>
+                        <label class="feature-label">Enabled</label>
+                        <p class="text-sm text-gray-500">Show this task to users</p>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="social-task-enabled" checked>
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="mt-6 flex justify-end space-x-3">
+                <button onclick="deleteSocialTask()" class="btn btn-danger">Delete</button>
+                <button onclick="closeSocialTaskModal()" class="btn bg-gray-200 text-gray-800">Cancel</button>
+                <button onclick="saveSocialTask()" class="btn btn-primary">Save Task</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Banner Editor Modal -->
+    <div id="banner-editor-modal" class="modal-overlay">
+        <div class="modal" style="max-width: 700px;">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold">Edit Slider Banner</h3>
+                <button onclick="closeBannerEditorModal()" class="text-gray-500 hover:text-gray-700">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block font-semibold mb-2">Banner Image URL</label>
+                    <input type="url" id="banner-image-url" class="input-field mb-2" placeholder="https://example.com/image.jpg">
+                    <div class="banner-upload" onclick="document.getElementById('banner-image-upload').click()">
+                        <i data-lucide="upload" class="w-8 h-8 mx-auto text-gray-400"></i>
+                        <p class="mt-2 text-gray-500">Click to upload or paste URL above</p>
+                        <input type="file" id="banner-image-upload" accept="image/*" class="hidden">
+                    </div>
+                    <img id="banner-preview" class="banner-preview hidden" alt="Banner Preview">
+                </div>
+                
+                <div>
+                    <label class="block font-semibold mb-2">Link URL</label>
+                    <input type="url" id="banner-link-url" class="input-field" placeholder="https://example.com">
+                </div>
+                
+                <div>
+                    <label class="block font-semibold mb-2">Display Order</label>
+                    <input type="number" id="banner-order" class="input-field" min="1" max="10" value="1">
+                    <p class="text-sm text-gray-500 mt-1">Lower numbers appear first (1 = first)</p>
+                </div>
+                
+                <div class="feature-toggle">
+                    <div>
+                        <label class="feature-label">Enabled</label>
+                        <p class="text-sm text-gray-500">Show this banner in slider</p>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="banner-enabled" checked>
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="mt-6 flex justify-end space-x-3">
+                <button onclick="deleteBanner()" class="btn btn-danger">Delete</button>
+                <button onclick="closeBannerEditorModal()" class="btn bg-gray-200 text-gray-800">Cancel</button>
+                <button onclick="saveBanner()" class="btn btn-primary">Save Banner</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Reset Modal -->
+    <div id="game-reset-modal" class="modal-overlay">
+        <div class="modal" style="max-width: 500px;">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold">Reset Game Limits</h3>
+                <button onclick="closeGameResetModal()" class="text-gray-500 hover:text-gray-700">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block font-semibold mb-2">Select Game to Reset</label>
+                    <select id="reset-game-select" class="input-field">
+                        <option value="colorGame">Color Game</option>
+                        <option value="watchVideo">Watch Video</option>
+                        <option value="ludoDice">Ludo Dice</option>
+                        <option value="websiteVisit">Website Visit</option>
+                        <option value="socialTasks">Social Tasks</option>
+                        <option value="all">All Games</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block font-semibold mb-2">Reset Type</label>
+                    <select id="reset-type-select" class="input-field">
+                        <option value="daily">Reset Daily Limits Only</option>
+                        <option value="special">Reset Special Task Counters</option>
+                        <option value="full">Full Reset (Limits + Stats)</option>
+                    </select>
+                </div>
+                
+                <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <h4 class="font-bold text-yellow-800 mb-2">⚠️ Reset Action:</h4>
+                    <p class="text-sm text-yellow-700" id="reset-description">
+                        This will reset the selected game's daily play limits for all users.
+                        Users will be able to play again immediately.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="mt-6 flex justify-end space-x-3">
+                <button onclick="closeGameResetModal()" class="btn bg-gray-200 text-gray-800">Cancel</button>
+                <button onclick="executeGameReset()" class="btn btn-danger">Reset Game</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyA3palpYZDFdNpBDIF564YsiOAN2dtbxzA",
+            authDomain: "tic-tac-toe-87d49.firebaseapp.com",
+            projectId: "tic-tac-toe-87d49",
+            storageBucket: "tic-tac-toe-87d49.firebasestorage.app",
+            messagingSenderId: "1051665363188",
+            appId: "1:1051665363188:web:c6389dddb74491a14ceea1"
+        };
+        
+        const ADMIN_UIDS = ["pPICivnJ7ZafIfDeuhilCyg6kO22"];
+
+        // Firebase Imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+        import { 
+            getFirestore, 
+            doc, 
+            getDoc, 
+            updateDoc, 
+            collection, 
+            getDocs, 
+            writeBatch, 
+            enableIndexedDbPersistence, 
+            query, 
+            where, 
+            onSnapshot, 
+            addDoc, 
+            serverTimestamp, 
+            setDoc,
+            orderBy,
+            limit,
+            arrayUnion,
+            deleteDoc,
+            increment
+        } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Enable persistence
+        enableIndexedDbPersistence(db).catch((err) => {
+            if (err.code == 'failed-precondition') {
+                console.warn('Firestore persistence failed: multiple tabs open.');
+            } else if (err.code == 'unimplemented') {
+                console.warn('Firestore persistence not available in this browser.');
+            }
+        });
+
+        // DOM Elements
+        const loader = document.getElementById('loader');
+        let currentEditingUserId = null;
+        let currentViewingUserId = null;
+        let currentEditingGameId = null;
+        let currentEditingNoticeId = null;
+        let currentEditingSocialTaskIndex = null;
+        let currentEditingBannerIndex = null;
+
+        // Initialize on load
+        window.onload = () => {
+            lucide.createIcons();
+            setupEventListeners();
+            onAuthStateChanged(auth, handleAuthStateChange);
+        };
+
+        // Auth State Handler
+        function handleAuthStateChange(user) {
+            if (user && ADMIN_UIDS.includes(user.uid)) {
+                document.getElementById('auth-section').style.display = 'none';
+                document.getElementById('panel-section').style.display = 'block';
+                navigateTo('dashboard');
+                loadDashboardData();
+                loadUsers();
+                loadWithdrawals();
+                loadSettings();
+            } else {
+                document.getElementById('auth-section').style.display = 'flex';
+                document.getElementById('panel-section').style.display = 'none';
+                if (user) {
+                    signOut(auth);
+                    showAlert("You are not authorized to access this panel.");
+                }
+            }
+        }
+
+        // Setup Event Listeners
+        function setupEventListeners() {
+            document.getElementById('login-btn').addEventListener('click', handleLogin);
+            document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
+            
+            // Navigation
+            document.querySelectorAll('.sidebar-link').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    navigateTo(link.dataset.page);
+                });
+            });
+            
+            // Alert/Confirm buttons
+            document.getElementById('alert-ok-btn').addEventListener('click', () => {
+                document.getElementById('custom-alert').classList.add('hidden');
+            });
+            
+            document.getElementById('confirm-cancel-btn').addEventListener('click', () => {
+                document.getElementById('custom-confirm').classList.add('hidden');
+            });
+        }
+
+        // Login Handler
+        async function handleLogin() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            const errorEl = document.getElementById('login-error');
+            errorEl.textContent = '';
+            loader.style.display = 'flex';
+            
+            try {
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                if (!ADMIN_UIDS.includes(userCredential.user.uid)) {
+                    await signOut(auth);
+                    showAlert("You are not authorized to access this panel.");
+                }
+            } catch (error) {
+                errorEl.textContent = "Invalid email or password.";
+                console.error("Login error:", error);
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
+
+        // Navigation
+        function navigateTo(pageId) {
+            document.querySelectorAll('.admin-page').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            
+            document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+            document.querySelector(`.sidebar-link[data-page="${pageId}"]`).classList.add('active');
+
+            if (pageId === 'dashboard') loadDashboard();
+            if (pageId === 'users') loadUsers();
+            if (pageId === 'withdrawals') loadWithdrawals();
+            if (pageId === 'games') loadGames();
+            if (pageId === 'notifications') loadNotifications();
+            if (pageId === 'social-tasks') loadSocialTasks();
+            if (pageId === 'banners') loadBanners();
+            if (pageId === 'settings') loadSettings();
+            if (pageId === 'system') loadSystemTools();
+        }
+
+        // Dashboard Functions
+        async function loadDashboard() {
+            const page = document.getElementById('dashboard');
+            page.innerHTML = `
+                <h1 class="text-3xl font-bold mb-6">Dashboard</h1>
+                <div id="stats-grid" class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div class="stat-card p-6"><h3 class="text-gray-500 text-lg">Total Users</h3><p id="total-users" class="text-4xl font-bold mt-2">0</p></div>
+                    <div class="stat-card p-6"><h3 class="text-gray-500 text-lg">Active Today</h3><p id="active-today" class="text-4xl font-bold mt-2 text-green-600">0</p></div>
+                    <div class="stat-card p-6"><h3 class="text-gray-500 text-lg">Pending Withdrawals</h3><p id="pending-withdrawals" class="text-4xl font-bold text-orange-500 mt-2">0</p></div>
+                    <div class="stat-card p-6"><h3 class="text-gray-500 text-lg">Today's Earnings</h3><p id="today-earnings" class="text-4xl font-bold text-green-600 mt-2">0</p></div>
+                </div>
+                <div class="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div>
+                        <h2 class="text-2xl font-bold mb-4">Recent Withdrawals</h2>
+                        <div id="recent-withdrawals" class="bg-white shadow rounded-lg p-4">
+                            Loading...
+                        </div>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold mb-4">Recent Users</h2>
+                        <div id="recent-users" class="bg-white shadow rounded-lg p-4">
+                            Loading...
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-8">
+                    <h2 class="text-2xl font-bold mb-4">Quick Actions</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <button onclick="openGameResetModal()" class="btn btn-warning p-4">
+                            <i data-lucide="refresh-cw" class="w-6 h-6 mr-2"></i>
+                            Reset Game Limits
+                        </button>
+                        <button onclick="openAppNoticeModal()" class="btn btn-primary p-4">
+                            <i data-lucide="send" class="w-6 h-6 mr-2"></i>
+                            Create App Notice
+                        </button>
+                        <button onclick="navigateTo('social-tasks')" class="btn btn-success p-4">
+                            <i data-lucide="thumbs-up" class="w-6 h-6 mr-2"></i>
+                            Manage Social Tasks
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // Load real-time data
+            loadDashboardData();
+        }
+
+        function loadDashboardData() {
+            // Total Users (real-time)
+            onSnapshot(collection(db, "users"), snap => {
+                document.getElementById('total-users').textContent = snap.size;
+            });
+
+            // Active Today (users who earned points today)
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            onSnapshot(query(
+                collection(db, "pointHistory"),
+                where("timestamp", ">=", today)
+            ), snap => {
+                const uniqueUserIds = new Set();
+                snap.forEach(doc => {
+                    const data = doc.data();
+                    if (data.userId) uniqueUserIds.add(data.userId);
+                });
+                document.getElementById('active-today').textContent = uniqueUserIds.size;
+            });
+
+            // Pending Withdrawals (real-time)
+            onSnapshot(query(collection(db, "withdrawals"), where("status", "==", "pending")), snap => {
+                document.getElementById('pending-withdrawals').textContent = snap.size;
+            });
+
+            // Load recent data
+            loadRecentWithdrawals();
+            loadRecentUsers();
+            loadTodayEarnings();
+        }
+
+        async function loadRecentWithdrawals() {
+            const withdrawalsSnap = await getDocs(query(
+                collection(db, "withdrawals"), 
+                orderBy("requestedAt", "desc"), 
+                limit(5)
+            ));
+            
+            let html = `<table class="w-full">
+                <thead><tr><th>User</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead>
+                <tbody>`;
+            
+            if (withdrawalsSnap.empty) {
+                html += `<tr><td colspan="4" class="text-center py-4 text-gray-500">No recent withdrawals</td></tr>`;
+            } else {
+                withdrawalsSnap.forEach(doc => {
+                    const req = doc.data();
+                    const date = req.requestedAt?.toDate().toLocaleDateString() || 'N/A';
+                    const statusClass = req.status === 'approved' ? 'status-approved' : 
+                                      req.status === 'pending' ? 'status-pending' : 'status-rejected';
+                    html += `<tr class="border-b">
+                        <td class="py-2">${req.userName || 'N/A'}</td>
+                        <td class="py-2 font-semibold">${req.amount}</td>
+                        <td class="py-2"><span class="status-badge ${statusClass}">${req.status}</span></td>
+                        <td class="py-2 text-gray-500 text-sm">${date}</td>
+                    </tr>`;
+                });
+            }
+            
+            html += `</tbody></table>`;
+            document.getElementById('recent-withdrawals').innerHTML = html;
+        }
+
+        async function loadRecentUsers() {
+            const usersSnap = await getDocs(query(
+                collection(db, "users"), 
+                orderBy("createdAt", "desc"), 
+                limit(5)
+            ));
+            
+            let html = `<table class="w-full">
+                <thead><tr><th>Name</th><th>Email</th><th>Balance</th><th>Type</th></tr></thead>
+                <tbody>`;
+            
+            if (usersSnap.empty) {
+                html += `<tr><td colspan="4" class="text-center py-4 text-gray-500">No users found</td></tr>`;
+            } else {
+                usersSnap.forEach(doc => {
+                    const user = doc.data();
+                    const isBlocked = user.isBlocked || false;
+                    const statusClass = isBlocked ? 'status-blocked' : 'status-active';
+                    const userType = user.userType || 'telegram';
+                    html += `<tr class="border-b">
+                        <td class="py-2">${user.name || 'N/A'}</td>
+                        <td class="py-2">${user.email || 'N/A'}</td>
+                        <td class="py-2 font-semibold">${user.balance || 0}</td>
+                        <td class="py-2"><span class="status-badge ${statusClass}">${userType}</span></td>
+                    </tr>`;
+                });
+            }
+            
+            html += `</tbody></table>`;
+            document.getElementById('recent-users').innerHTML = html;
+        }
+
+        async function loadTodayEarnings() {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const pointHistorySnap = await getDocs(query(
+                collection(db, "pointHistory"),
+                where("timestamp", ">=", today),
+                where("points", ">", 0)
+            ));
+            
+            let totalEarnings = 0;
+            pointHistorySnap.forEach(doc => {
+                const history = doc.data();
+                totalEarnings += history.points || 0;
+            });
+            
+            document.getElementById('today-earnings').textContent = totalEarnings;
+        }
+
+        // ===== ENHANCED GAME MANAGEMENT =====
+        async function loadGames() {
+            const page = document.getElementById('games');
+            page.innerHTML = `
+                <div class="flex justify-between items-center mb-6">
+                    <h1 class="text-3xl font-bold">Game Management</h1>
+                    <div class="flex space-x-2">
+                        <button onclick="syncAllGameSettings()" class="btn btn-secondary">
+                            <i data-lucide="refresh-cw" class="w-4 h-4 mr-2"></i> Sync All
+                        </button>
+                        <button onclick="openGameResetModal()" class="btn btn-warning">
+                            Reset Game Limits
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div class="flex items-center">
+                        <i data-lucide="info" class="w-5 h-5 text-blue-600 mr-2"></i>
+                        <p class="text-blue-700">
+                            <strong>Features:</strong> Set Daily Play Limits, Toggle Game Visibility, 
+                            Manage Special Tasks, Reset Individual Game Stats
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                    <!-- Color Game Card -->
+                    <div class="game-card" id="colorGame-card">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center">
+                                <div class="bg-purple-500 text-white p-3 rounded-lg mr-3">
+                                    <i data-lucide="palette" class="w-6 h-6"></i>
+                                </div>
+                                <div>
+                                    <h2 class="text-xl font-bold">Color Game</h2>
+                                    <p class="text-sm text-gray-500">Match colors to earn points</p>
+                                </div>
+                            </div>
+                            <span id="colorGame-status" class="status-badge status-visible">Visible</span>
+                        </div>
+                        
+                        <div class="game-limits-grid">
+                            <div class="limit-card">
+                                <div class="limit-title">Daily Play Limit</div>
+                                <div class="limit-value" id="colorGame-play-limit">20 plays</div>
+                            </div>
+                            <div class="limit-card">
+                                <div class="limit-title">Reward Per Play</div>
+                                <div class="limit-value" id="colorGame-reward">10 points</div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="font-semibold">Today's Plays:</span>
+                                <span class="font-bold text-blue-600" id="colorGame-today-plays">0</span>
+                            </div>
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="font-semibold">Special Task Counter:</span>
+                                <span class="font-bold text-green-600" id="colorGame-special-counter">0/20</span>
+                            </div>
+                        </div>
+                        
+                        <div class="game-action-buttons">
+                            <button onclick="openQuickSettings('colorGame')" class="btn btn-primary flex-1">
+                                <i data-lucide="settings" class="w-4 h-4 mr-2"></i> Settings
+                            </button>
+                            <button onclick="resetIndividualGame('colorGame')" class="btn btn-warning">
+                                Reset
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Watch Video Card -->
+                    <div class="game-card" id="watchVideo-card">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center">
+                                <div class="bg-blue-500 text-white p-3 rounded-lg mr-3">
+                                    <i data-lucide="video" class="w-6 h-6"></i>
+                                </div>
+                                <div>
+                                    <h2 class="text-xl font-bold">Watch Video</h2>
+                                    <p class="text-sm text-gray-500">Earn by watching ads</p>
+                                </div>
+                            </div>
+                            <span id="watchVideo-status" class="status-badge status-visible">Visible</span>
+                        </div>
+                        
+                        <div class="game-limits-grid">
+                            <div class="limit-card">
+                                <div class="limit-title">Daily Play Limit</div>
+                                <div class="limit-value" id="watchVideo-play-limit">10 videos</div>
+                            </div>
+                            <div class="limit-card">
+                                <div class="limit-title">Reward Per Video</div>
+                                <div class="limit-value" id="watchVideo-reward">15 points</div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="font-semibold">Today's Plays:</span>
+                                <span class="font-bold text-blue-600" id="watchVideo-today-plays">0</span>
+                            </div>
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="font-semibold">Special Task Counter:</span>
+                                <span class="font-bold text-green-600" id="watchVideo-special-counter">0/10</span>
+                            </div>
+                        </div>
+                        
+                        <div class="game-action-buttons">
+                            <button onclick="openQuickSettings('watchVideo')" class="btn btn-primary flex-1">
+                                <i data-lucide="settings" class="w-4 h-4 mr-2"></i> Settings
+                            </button>
+                            <button onclick="resetIndividualGame('watchVideo')" class="btn btn-warning">
+                                Reset
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Ludo Dice Card -->
+                    <div class="game-card" id="ludoDice-card">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center">
+                                <div class="bg-green-500 text-white p-3 rounded-lg mr-3">
+                                    <i data-lucide="dice-5" class="w-6 h-6"></i>
+                                </div>
+                                <div>
+                                    <h2 class="text-xl font-bold">Ludo Dice</h2>
+                                    <p class="text-sm text-gray-500">Roll dice to win points</p>
+                                </div>
+                            </div>
+                            <span id="ludoDice-status" class="status-badge status-visible">Visible</span>
+                        </div>
+                        
+                        <div class="game-limits-grid">
+                            <div class="limit-card">
+                                <div class="limit-title">Daily Play Limit</div>
+                                <div class="limit-value" id="ludoDice-play-limit">50 plays</div>
+                            </div>
+                            <div class="limit-card">
+                                <div class="limit-title">Reward Per Play</div>
+                                <div class="limit-value" id="ludoDice-reward">5 points</div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="font-semibold">Today's Plays:</span>
+                                <span class="font-bold text-blue-600" id="ludoDice-today-plays">0</span>
+                            </div>
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="font-semibold">Special Task Counter:</span>
+                                <span class="font-bold text-green-600" id="ludoDice-special-counter">0/30</span>
+                            </div>
+                        </div>
+                        
+                        <div class="game-action-buttons">
+                            <button onclick="openQuickSettings('ludoDice')" class="btn btn-primary flex-1">
+                                <i data-lucide="settings" class="w-4 h-4 mr-2"></i> Settings
+                            </button>
+                            <button onclick="resetIndividualGame('ludoDice')" class="btn btn-warning">
+                                Reset
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Global Controls -->
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h2 class="text-xl font-bold mb-4">Global Controls</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block font-semibold mb-2">Set All Games Limit</label>
+                            <div class="flex items-center space-x-2">
+                                <input type="number" id="global-play-limit" class="input-field" placeholder="e.g., 20">
+                                <button onclick="applyGlobalPlayLimit()" class="btn btn-primary">Apply to All</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block font-semibold mb-2">Set All Games Reward</label>
+                            <div class="flex items-center space-x-2">
+                                <input type="number" id="global-reward" class="input-field" placeholder="e.g., 10">
+                                <button onclick="applyGlobalReward()" class="btn btn-primary">Apply to All</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block font-semibold mb-2">Visibility Control</label>
+                            <div class="flex space-x-2">
+                                <button onclick="showAllGames()" class="btn btn-success flex-1">Show All</button>
+                                <button onclick="hideAllGames()" class="btn btn-danger flex-1">Hide All</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Game Statistics -->
+                <div class="bg-white p-6 rounded-lg shadow mt-6">
+                    <h2 class="text-xl font-bold mb-4">Game Statistics</h2>
+                    <div id="games-stats-table" class="overflow-x-auto">
+                        Loading...
+                    </div>
+                </div>
+            `;
+            
+            await loadGamesData();
+            await loadGamesStats();
+        }
+
+        async function loadGamesData() {
+            try {
+                const gamesSnap = await getDoc(doc(db, "config", "games"));
+                const gamesConfig = gamesSnap.exists() ? gamesSnap.data() : {};
+                
+                // Load game configurations
+                const games = [
+                    { id: 'colorGame', name: 'Color Game', icon: 'palette', color: 'bg-purple-500' },
+                    { id: 'watchVideo', name: 'Watch Video', icon: 'video', color: 'bg-blue-500' },
+                    { id: 'ludoDice', name: 'Ludo Dice', icon: 'dice-5', color: 'bg-green-500' }
+                ];
+                
+                // Get today's stats
+                const today = new Date().toISOString().split('T')[0];
+                const todayStats = gamesConfig.dailyStats?.[today] || {};
+                
+                games.forEach(game => {
+                    const gameConfig = gamesConfig[game.id] || {};
+                    const isVisible = gameConfig.visible !== false;
+                    const dailyPlayLimit = gameConfig.dailyPlayLimit || 0;
+                    const rewardPerPlay = gameConfig.rewardPerPlay || 0;
+                    const todayGameStats = todayStats[game.id] || { playCount: 0 };
+                    
+                    // Special task counter
+                    const specialTaskCount = getSpecialTaskCount(game.id);
+                    const specialCounter = Math.min(todayGameStats.playCount || 0, specialTaskCount);
+                    
+                    // Update status badge
+                    const statusEl = document.getElementById(`${game.id}-status`);
+                    if (statusEl) {
+                        statusEl.textContent = isVisible ? 'Visible' : 'Hidden';
+                        statusEl.className = `status-badge ${isVisible ? 'status-visible' : 'status-hidden'}`;
+                    }
+                    
+                    // Update play limit display
+                    const playLimitEl = document.getElementById(`${game.id}-play-limit`);
+                    if (playLimitEl) {
+                        playLimitEl.textContent = dailyPlayLimit > 0 ? `${dailyPlayLimit} plays` : 'Unlimited';
+                    }
+                    
+                    // Update reward display
+                    const rewardEl = document.getElementById(`${game.id}-reward`);
+                    if (rewardEl) {
+                        rewardEl.textContent = `${rewardPerPlay} points`;
+                    }
+                    
+                    // Update today's plays
+                    const todayPlaysEl = document.getElementById(`${game.id}-today-plays`);
+                    if (todayPlaysEl) {
+                        todayPlaysEl.textContent = todayGameStats.playCount || 0;
+                    }
+                    
+                    // Update special counter
+                    const specialCounterEl = document.getElementById(`${game.id}-special-counter`);
+                    if (specialCounterEl) {
+                        specialCounterEl.textContent = `${specialCounter}/${specialTaskCount}`;
+                    }
+                });
+                
+                lucide.createIcons();
+            } catch (error) {
+                console.error("Error loading games data:", error);
+                showAlert("❌ Error loading game configurations", true);
+            }
+        }
+
+        function getSpecialTaskCount(gameId) {
+            const specialTaskConfigs = {
+                'colorGame': 20,
+                'watchVideo': 10,
+                'ludoDice': 30
+            };
+            return specialTaskConfigs[gameId] || 10;
+        }
+
+        // Quick Game Settings Functions
+        function openQuickSettings(gameId) {
+            currentEditingGameId = gameId;
+            
+            const gameNames = {
+                'colorGame': 'Color Game',
+                'watchVideo': 'Watch Video',
+                'ludoDice': 'Ludo Dice'
+            };
+            
+            document.getElementById('quick-game-title').textContent = `${gameNames[gameId]} Settings`;
+            
+            // Load current settings
+            loadGameSettingsForQuickEdit(gameId);
+            
+            // Show modal
+            document.getElementById('quick-game-settings-modal').style.display = 'flex';
+        }
+
+        async function loadGameSettingsForQuickEdit(gameId) {
+            try {
+                const gamesSnap = await getDoc(doc(db, "config", "games"));
+                const gamesConfig = gamesSnap.exists() ? gamesSnap.data() : {};
+                
+                const gameConfig = gamesConfig[gameId] || {};
+                
+                // Set form values
+                document.getElementById('quick-play-limit').value = gameConfig.dailyPlayLimit || 0;
+                document.getElementById('quick-game-visible').checked = gameConfig.visible !== false;
+                document.getElementById('quick-game-reward').value = gameConfig.rewardPerPlay || 0;
+                document.getElementById('quick-game-order').value = gameConfig.order || 1;
+                
+            } catch (error) {
+                console.error("Error loading game settings:", error);
+            }
+        }
+
+        function closeQuickSettingsModal() {
+            document.getElementById('quick-game-settings-modal').style.display = 'none';
+            currentEditingGameId = null;
+        }
+
+        async function saveQuickGameSettings() {
+            if (!currentEditingGameId) return;
+            
+            const dailyPlayLimit = parseInt(document.getElementById('quick-play-limit').value) || 0;
+            const isVisible = document.getElementById('quick-game-visible').checked;
+            const rewardPerPlay = parseInt(document.getElementById('quick-game-reward').value) || 0;
+            const order = parseInt(document.getElementById('quick-game-order').value) || 1;
+            
+            if (dailyPlayLimit < 0 || rewardPerPlay < 0) {
+                showAlert("❌ Please enter valid positive numbers");
+                return;
+            }
+            
+            if (order < 1 || order > 10) {
+                showAlert("❌ Order must be between 1 and 10");
+                return;
+            }
+            
+            loader.style.display = 'flex';
+            try {
+                const gameRef = doc(db, "config", "games");
+                const gameSnap = await getDoc(gameRef);
+                const currentData = gameSnap.exists() ? gameSnap.data() : {};
+                
+                const updateData = {
+                    [currentEditingGameId]: {
+                        name: currentEditingGameId === 'colorGame' ? 'Color Game' : 
+                              currentEditingGameId === 'watchVideo' ? 'Watch Video' : 'Ludo Dice',
+                        dailyPlayLimit: dailyPlayLimit,
+                        visible: isVisible,
+                        rewardPerPlay: rewardPerPlay,
+                        order: order,
+                        updatedAt: serverTimestamp()
+                    }
+                };
+                
+                await setDoc(gameRef, updateData, { merge: true });
+                
+                showToast("✅ Game settings saved successfully!");
+                closeQuickSettingsModal();
+                
+                // Refresh displays
+                await loadGamesData();
+                await loadGamesStats();
+                
+            } catch (error) {
+                console.error("Error saving game settings:", error);
+                showAlert("❌ Error saving game settings: " + error.message, true);
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
+
+        // Global Controls Functions
+        async function applyGlobalPlayLimit() {
+            const limit = parseInt(document.getElementById('global-play-limit').value) || 0;
+            
+            if (isNaN(limit) || limit < 0) {
+                showAlert("Please enter a valid positive number for the play limit.");
+                return;
+            }
+            
+            showConfirm(`Apply daily play limit of ${limit} to ALL games?`, async () => {
+                loader.style.display = 'flex';
+                try {
+                    const gameRef = doc(db, "config", "games");
+                    const gameSnap = await getDoc(gameRef);
+                    const currentData = gameSnap.exists() ? gameSnap.data() : {};
+                    
+                    const updateData = { ...currentData };
+                    
+                    // Update all games
+                    ['colorGame', 'watchVideo', 'ludoDice'].forEach(gameId => {
+                        if (!updateData[gameId]) updateData[gameId] = {};
+                        updateData[gameId].dailyPlayLimit = limit;
+                        updateData[gameId].updatedAt = serverTimestamp();
+                    });
+                    
+                    await setDoc(gameRef, updateData);
+                    
+                    showToast(`✅ Daily play limit of ${limit} applied to all games!`);
+                    await loadGamesData();
+                    await loadGamesStats();
+                    
+                } catch (error) {
+                    console.error("Error applying global limit:", error);
+                    showAlert("❌ Error applying global limit", true);
+                } finally {
+                    loader.style.display = 'none';
+                }
+            });
+        }
+
+        async function applyGlobalReward() {
+            const reward = parseInt(document.getElementById('global-reward').value) || 0;
+            
+            if (isNaN(reward) || reward < 0) {
+                showAlert("Please enter a valid positive number for the reward.");
+                return;
+            }
+            
+            showConfirm(`Apply reward of ${reward} points to ALL games?`, async () => {
+                loader.style.display = 'flex';
+                try {
+                    const gameRef = doc(db, "config", "games");
+                    const gameSnap = await getDoc(gameRef);
+                    const currentData = gameSnap.exists() ? gameSnap.data() : {};
+                    
+                    const updateData = { ...currentData };
+                    
+                    // Update all games
+                    ['colorGame', 'watchVideo', 'ludoDice'].forEach(gameId => {
+                        if (!updateData[gameId]) updateData[gameId] = {};
+                        updateData[gameId].rewardPerPlay = reward;
+                        updateData[gameId].updatedAt = serverTimestamp();
+                    });
+                    
+                    await setDoc(gameRef, updateData);
+                    
+                    showToast(`✅ Reward of ${reward} points applied to all games!`);
+                    await loadGamesData();
+                    await loadGamesStats();
+                    
+                } catch (error) {
+                    console.error("Error applying global reward:", error);
+                    showAlert("❌ Error applying global reward", true);
+                } finally {
+                    loader.style.display = 'none';
+                }
+            });
+        }
+
+        async function showAllGames() {
+            showConfirm("Make ALL games visible in the mini-app?", async () => {
+                loader.style.display = 'flex';
+                try {
+                    const gameRef = doc(db, "config", "games");
+                    const gameSnap = await getDoc(gameRef);
+                    const currentData = gameSnap.exists() ? gameSnap.data() : {};
+                    
+                    const updateData = { ...currentData };
+                    
+                    // Show all games
+                    ['colorGame', 'watchVideo', 'ludoDice'].forEach(gameId => {
+                        if (!updateData[gameId]) updateData[gameId] = {};
+                        updateData[gameId].visible = true;
+                        updateData[gameId].updatedAt = serverTimestamp();
+                    });
+                    
+                    await setDoc(gameRef, updateData);
+                    
+                    showToast("✅ All games are now visible!");
+                    await loadGamesData();
+                    await loadGamesStats();
+                    
+                } catch (error) {
+                    console.error("Error showing all games:", error);
+                    showAlert("❌ Error showing all games", true);
+                } finally {
+                    loader.style.display = 'none';
+                }
+            });
+        }
+
+        async function hideAllGames() {
+            showConfirm("Hide ALL games from the mini-app?", async () => {
+                loader.style.display = 'flex';
+                try {
+                    const gameRef = doc(db, "config", "games");
+                    const gameSnap = await getDoc(gameRef);
+                    const currentData = gameSnap.exists() ? gameSnap.data() : {};
+                    
+                    const updateData = { ...currentData };
+                    
+                    // Hide all games
+                    ['colorGame', 'watchVideo', 'ludoDice'].forEach(gameId => {
+                        if (!updateData[gameId]) updateData[gameId] = {};
+                        updateData[gameId].visible = false;
+                        updateData[gameId].updatedAt = serverTimestamp();
+                    });
+                    
+                    await setDoc(gameRef, updateData);
+                    
+                    showToast("✅ All games are now hidden!");
+                    await loadGamesData();
+                    await loadGamesStats();
+                    
+                } catch (error) {
+                    console.error("Error hiding all games:", error);
+                    showAlert("❌ Error hiding all games", true);
+                } finally {
+                    loader.style.display = 'none';
+                }
+            });
+        }
+
+        async function syncAllGameSettings() {
+            loader.style.display = 'flex';
+            try {
+                await loadGamesData();
+                await loadGamesStats();
+                showToast("✅ All game settings synchronized!");
+            } catch (error) {
+                console.error("Error syncing game settings:", error);
+                showAlert("❌ Error syncing game settings", true);
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
+
+        async function resetIndividualGame(gameId) {
+            const gameNames = {
+                'colorGame': 'Color Game',
+                'watchVideo': 'Watch Video',
+                'ludoDice': 'Ludo Dice'
+            };
+            
+            showConfirm(`Reset ${gameNames[gameId]} limits and stats for all users?`, async () => {
+                loader.style.display = 'flex';
+                try {
+                    // Get today's date
+                    const today = new Date().toISOString().split('T')[0];
+                    
+                    // Update reset flags
+                    const resetRef = doc(db, "config", "resetFlags");
+                    await setDoc(resetRef, {
+                        [`${gameId}_reset_date`]: today,
+                        updatedAt: serverTimestamp()
+                    }, { merge: true });
+                    
+                    showToast(`✅ ${gameNames[gameId]} reset initiated! Users will see reset on next app refresh.`);
+                    
+                    // Update game stats
+                    const gameRef = doc(db, "config", "games");
+                    const gameSnap = await getDoc(gameRef);
+                    const currentData = gameSnap.exists() ? gameSnap.data() : {};
+                    
+                    // Clear today's stats for this game
+                    if (currentData.dailyStats && currentData.dailyStats[today]) {
+                        delete currentData.dailyStats[today][gameId];
+                        await updateDoc(gameRef, {
+                            [`dailyStats.${today}`]: currentData.dailyStats[today]
+                        });
+                    }
+                    
+                    await loadGamesData();
+                    await loadGamesStats();
+                    
+                } catch (error) {
+                    console.error("Error resetting game:", error);
+                    showAlert("❌ Error resetting game", true);
+                } finally {
+                    loader.style.display = 'none';
+                }
+            });
+        }
+
+        // ===== APP NOTICE SYSTEM =====
+        async function loadNotifications() {
+            const page = document.getElementById('notifications');
+            page.innerHTML = `
+                <div class="flex justify-between items-center mb-6">
+                    <h1 class="text-3xl font-bold">App Notices</h1>
+                    <button onclick="openAppNoticeModal()" class="btn btn-primary">
+                        <i data-lucide="plus" class="w-4 h-4 mr-2"></i> Create Notice
+                    </button>
+                </div>
+                
+                <div class="bg-white shadow rounded-lg p-6 mb-8">
+                    <h2 class="text-xl font-bold mb-4">Current Active Notice</h2>
+                    <div id="active-notice-container" class="mb-6">
+                        Loading...
+                    </div>
+                    
+                    <h2 class="text-xl font-bold mb-4">Create New Notice</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block font-semibold mb-2">Notice Type</label>
+                            <select id="new-notice-type" class="input-field">
+                                <option value="info">Information (Blue)</option>
+                                <option value="warning">Warning (Yellow)</option>
+                                <option value="success">Success (Green)</option>
+                                <option value="error">Error (Red)</option>
+                                <option value="premium">Premium (Gold)</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block font-semibold mb-2">Title</label>
+                            <input type="text" id="new-notice-title" class="input-field" placeholder="Important Announcement">
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <label class="block font-semibold mb-2">Message</label>
+                            <textarea id="new-notice-message" rows="4" class="input-field" placeholder="Type your message here..."></textarea>
+                        </div>
+                        
+                        <div>
+                            <div class="feature-toggle">
+                                <div>
+                                    <label class="feature-label">Cancelable</label>
+                                    <p class="text-sm text-gray-500">Allow users to dismiss permanently</p>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" id="new-notice-cancelable" checked>
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <div class="feature-toggle">
+                                <div>
+                                    <label class="feature-label">Enabled</label>
+                                    <p class="text-sm text-gray-500">Show this notice to users</p>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" id="new-notice-enabled" checked>
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 flex justify-end">
+                        <button onclick="createNewNotice()" class="btn btn-primary px-8">
+                            <i data-lucide="send" class="w-4 h-4 mr-2"></i> Publish Notice
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="bg-white shadow rounded-lg p-6">
+                    <h2 class="text-xl font-bold mb-4">Notice History</h2>
+                    <div id="notice-history" class="overflow-x-auto">
+                        Loading...
+                    </div>
+                </div>
+            `;
+            
+            await loadActiveNotice();
+            await loadNoticeHistory();
+        }
+
+        async function loadActiveNotice() {
+            try {
+                const noticeSnap = await getDoc(doc(db, "config", "appNotice"));
+                const container = document.getElementById('active-notice-container');
+                
+                if (!noticeSnap.exists() || !noticeSnap.data().enabled) {
+                    container.innerHTML = `
+                        <div class="p-4 bg-gray-50 rounded-lg text-center">
+                            <i data-lucide="bell-off" class="w-12 h-12 mx-auto text-gray-400 mb-2"></i>
+                            <p class="text-gray-500">No active notice at the moment</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const notice = noticeSnap.data();
+                const typeColors = {
+                    'info': 'bg-blue-100 border-blue-300 text-blue-800',
+                    'warning': 'bg-yellow-100 border-yellow-300 text-yellow-800',
+                    'success': 'bg-green-100 border-green-300 text-green-800',
+                    'error': 'bg-red-100 border-red-300 text-red-800',
+                    'premium': 'bg-gradient-to-r from-yellow-100 to-yellow-50 border-yellow-300 text-yellow-900'
+                };
+                
+                container.innerHTML = `
+                    <div class="p-4 rounded-lg border ${typeColors[notice.type || 'info']}">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="font-bold text-lg">${notice.title || 'No Title'}</h3>
+                            <div class="flex space-x-2">
+                                <button onclick="editAppNotice()" class="btn btn-sm btn-secondary">Edit</button>
+                                <button onclick="disableAppNotice()" class="btn btn-sm btn-danger">Disable</button>
+                            </div>
+                        </div>
+                        <p class="mb-2">${notice.message || 'No message'}</p>
+                        <div class="text-sm text-gray-600">
+                            <p>Type: <span class="font-semibold capitalize">${notice.type || 'info'}</span></p>
+                            <p>Cancelable: <span class="font-semibold">${notice.cancelable !== false ? 'Yes' : 'No'}</span></p>
+                            <p>Created: <span class="font-semibold">${notice.createdAt?.toDate().toLocaleDateString() || 'N/A'}</span></p>
+                        </div>
+                    </div>
+                `;
+                
+                lucide.createIcons();
+            } catch (error) {
+                console.error("Error loading active notice:", error);
+            }
+        }
+
+        async function loadNoticeHistory() {
+            try {
+                const historySnap = await getDocs(query(
+                    collection(db, "noticeHistory"),
+                    orderBy("createdAt", "desc"),
+                    limit(20)
+                ));
+                
+                let html = `<table class="w-full">
+                    <thead><tr><th>Title</th><th>Type</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead>
+                    <tbody>`;
+                
+                if (historySnap.empty) {
+                    html += `<tr><td colspan="5" class="text-center py-4 text-gray-500">No notice history</td></tr>`;
+                } else {
+                    historySnap.forEach(doc => {
+                        const notice = doc.data();
+                        const date = notice.createdAt?.toDate().toLocaleString() || 'N/A';
+                        const isActive = notice.enabled !== false;
+                        
+                        html += `<tr class="border-b">
+                            <td class="py-2">${notice.title || 'No Title'}</td>
+                            <td class="py-2"><span class="status-badge ${getNoticeTypeClass(notice.type)}">${notice.type || 'info'}</span></td>
+                            <td class="py-2"><span class="status-badge ${isActive ? 'status-active' : 'status-blocked'}">${isActive ? 'Active' : 'Disabled'}</span></td>
+                            <td class="py-2 text-sm text-gray-500">${date}</td>
+                            <td class="py-2">
+                                <button onclick="viewNoticeHistory('${doc.id}')" class="btn btn-sm btn-secondary">View</button>
+                                ${isActive ? `<button onclick="disableNotice('${doc.id}')" class="btn btn-sm btn-danger ml-2">Disable</button>` : ''}
+                            </td>
+                        </tr>`;
+                    });
+                }
+                
+                html += `</tbody></table>`;
+                document.getElementById('notice-history').innerHTML = html;
+                
+            } catch (error) {
+                console.error("Error loading notice history:", error);
+                document.getElementById('notice-history').innerHTML = 
+                    `<p class="text-center text-gray-500">Error loading notice history</p>`;
+            }
+        }
+
+        function getNoticeTypeClass(type) {
+            const classes = {
+                'info': 'bg-blue-100 text-blue-800',
+                'warning': 'bg-yellow-100 text-yellow-800',
+                'success': 'bg-green-100 text-green-800',
+                'error': 'bg-red-100 text-red-800',
+                'premium': 'bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-800'
+            };
+            return classes[type] || 'bg-gray-100 text-gray-800';
+        }
+
+        function openAppNoticeModal() {
+            document.getElementById('app-notice-modal').style.display = 'flex';
+            currentEditingNoticeId = null;
+            
+            // Reset form
+            document.getElementById('notice-type').value = 'info';
+            document.getElementById('notice-title').value = '';
+            document.getElementById('notice-message').value = '';
+            document.getElementById('notice-cancelable').checked = true;
+            document.getElementById('notice-enabled').checked = true;
+        }
+
+        function closeAppNoticeModal() {
+            document.getElementById('app-notice-modal').style.display = 'none';
+            currentEditingNoticeId = null;
+        }
+
+        async function saveAppNotice() {
+            const type = document.getElementById('notice-type').value;
+            const title = document.getElementById('notice-title').value.trim();
+            const message = document.getElementById('notice-message').value.trim();
+            const cancelable = document.getElementById('notice-cancelable').checked;
+            const enabled = document.getElementById('notice-enabled').checked;
+            
+            if (!title || !message) {
+                showAlert("Please enter both title and message.");
+                return;
+            }
+            
+            loader.style.display = 'flex';
+            try {
+                const noticeData = {
+                    type: type,
+                    title: title,
+                    message: message,
+                    cancelable: cancelable,
+                    enabled: enabled,
+                    createdAt: serverTimestamp(),
+                    updatedAt: serverTimestamp()
+                };
+                
+                // Save to appNotice document
+                await setDoc(doc(db, "config", "appNotice"), noticeData);
+                
+                // Add to history
+                await addDoc(collection(db, "noticeHistory"), noticeData);
+                
+                showToast("✅ App notice saved successfully!");
+                closeAppNoticeModal();
+                await loadActiveNotice();
+                await loadNoticeHistory();
+                
+            } catch (error) {
+                console.error("Error saving app notice:", error);
+                showAlert("❌ Error saving app notice: " + error.message, true);
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
+
+        async function createNewNotice() {
+            const type = document.getElementById('new-notice-type').value;
+            const title = document.getElementById('new-notice-title').value.trim();
+            const message = document.getElementById('new-notice-message').value.trim();
+            const cancelable = document.getElementById('new-notice-cancelable').checked;
+            const enabled = document.getElementById('new-notice-enabled').checked;
+            
+            if (!title || !message) {
+                showAlert("Please enter both title and message.");
+                return;
+            }
+            
+            loader.style.display = 'flex';
+            try {
+                const noticeData = {
+                    type: type,
+                    title: title,
+                    message: message,
+                    cancelable: cancelable,
+                    enabled: enabled,
+                    createdAt: serverTimestamp(),
+                    updatedAt: serverTimestamp()
+                };
+                
+                // Save to appNotice document
+                await setDoc(doc(db, "config", "appNotice"), noticeData);
+                
+                // Add to history
+                await addDoc(collection(db, "noticeHistory"), noticeData);
+                
+                // Clear form
+                document.getElementById('new-notice-title').value = '';
+                document.getElementById('new-notice-message').value = '';
+                
+                showToast("✅ New notice published successfully!");
+                await loadActiveNotice();
+                await loadNoticeHistory();
+                
+            } catch (error) {
+                console.error("Error creating notice:", error);
+                showAlert("❌ Error creating notice: " + error.message, true);
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
+
+        async function disableAppNotice() {
+            showConfirm("Disable the current app notice?", async () => {
+                loader.style.display = 'flex';
+                try {
+                    await updateDoc(doc(db, "config", "appNotice"), {
+                        enabled: false,
+                        updatedAt: serverTimestamp()
+                    });
+                    
+                    showToast("✅ App notice disabled!");
+                    await loadActiveNotice();
+                    await loadNoticeHistory();
+                } catch (error) {
+                    console.error("Error disabling notice:", error);
+                    showAlert("❌ Error disabling notice", true);
+                } finally {
+                    loader.style.display = 'none';
+                }
+            });
+        }
+
+        // ===== SOCIAL TASKS MANAGEMENT =====
+        async function loadSocialTasks() {
+            const page = document.getElementById('social-tasks');
+            page.innerHTML = `
+                <div class="flex justify-between items-center mb-6">
+                    <h1 class="text-3xl font-bold">Social Tasks Management</h1>
+                    <button onclick="openSocialTaskModal()" class="btn btn-primary">
+                        <i data-lucide="plus" class="w-4 h-4 mr-2"></i> Add Task
+                    </button>
+                </div>
+                
+                <div class="bg-white shadow rounded-lg p-6 mb-8">
+                    <h2 class="text-xl font-bold mb-4">Social Tasks Configuration</h2>
+                    <p class="text-gray-600 mb-4">Configure social media tasks for users to complete and earn rewards.</p>
+                    
+                    <div id="social-tasks-list" class="space-y-4">
+                        Loading...
+                    </div>
+                </div>
+            `;
+            
+            await loadSocialTasksData();
+        }
+
+        async function loadSocialTasksData() {
+            try {
+                const configSnap = await getDoc(doc(db, "config", "main"));
+                const config = configSnap.exists() ? configSnap.data() : {};
+                const socialTasks = config.socialTasks || [];
+                
+                const container = document.getElementById('social-tasks-list');
+                
+                if (socialTasks.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center p-8 bg-gray-50 rounded-lg">
+                            <i data-lucide="thumbs-up" class="w-12 h-12 mx-auto text-gray-400 mb-4"></i>
+                            <p class="text-gray-500 mb-4">No social tasks configured yet.</p>
+                            <button onclick="openSocialTaskModal()" class="btn btn-primary">
+                                <i data-lucide="plus" class="w-4 h-4 mr-2"></i> Add First Task
+                            </button>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                let html = '<div class="grid grid-cols-1 md:grid-cols-2 gap-4">';
+                
+                socialTasks.forEach((task, index) => {
+                    const iconHtml = task.icon && task.icon.startsWith('http') 
+                        ? `<img src="${task.icon}" class="w-8 h-8 rounded-md">`
+                        : `<i class="fas fa-${task.icon || 'thumbs-up'} text-xl"></i>`;
+                    
+                    html += `
+                        <div class="social-task-item">
+                            <div class="flex justify-between items-start mb-2">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 flex items-center justify-center bg-blue-100 rounded-lg mr-3">
+                                        ${iconHtml}
+                                    </div>
+                                    <div>
+                                        <h3 class="font-bold">${task.name}</h3>
+                                        <p class="text-sm text-gray-500">${task.reward || 0} points</p>
+                                    </div>
+                                </div>
+                                <span class="status-badge ${task.enabled !== false ? 'status-active' : 'status-blocked'}">
+                                    ${task.enabled !== false ? 'Active' : 'Disabled'}
+                                </span>
+                            </div>
+                            <p class="text-sm text-gray-600 mb-2 truncate">${task.link}</p>
+                            <div class="flex justify-end space-x-2">
+                                <button onclick="editSocialTask(${index})" class="btn btn-sm btn-secondary">Edit</button>
+                                <button onclick="deleteSocialTaskConfirm(${index})" class="btn btn-sm btn-danger">Delete</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+                container.innerHTML = html;
+                
+            } catch (error) {
+                console.error("Error loading social tasks:", error);
+                document.getElementById('social-tasks-list').innerHTML = 
+                    `<p class="text-center text-red-500">Error loading social tasks</p>`;
+            }
+        }
+
+        function openSocialTaskModal(taskIndex = null) {
+            currentEditingSocialTaskIndex = taskIndex;
+            document.getElementById('social-task-modal').style.display = 'flex';
+            
+            if (taskIndex === null) {
+                // New task
+                document.getElementById('social-task-name').value = '';
+                document.getElementById('social-task-icon').value = 'thumbs-up';
+                document.getElementById('social-task-link').value = '';
+                document.getElementById('social-task-reward').value = '50';
+                document.getElementById('social-task-enabled').checked = true;
+            } else {
+                // Edit existing task
+                loadSocialTaskData(taskIndex);
+            }
+        }
+
+        async function loadSocialTaskData(taskIndex) {
+            try {
+                const configSnap = await getDoc(doc(db, "config", "main"));
+                const config = configSnap.exists() ? configSnap.data() : {};
+                const socialTasks = config.socialTasks || [];
+                
+                if (socialTasks[taskIndex]) {
+                    const task = socialTasks[taskIndex];
+                    document.getElementById('social-task-name').value = task.name || '';
+                    document.getElementById('social-task-icon').value = task.icon || 'thumbs-up';
+                    document.getElementById('social-task-link').value = task.link || '';
+                    document.getElementById('social-task-reward').value = task.reward || 50;
+                    document.getElementById('social-task-enabled').checked = task.enabled !== false;
+                }
+            } catch (error) {
+                console.error("Error loading social task data:", error);
+            }
+        }
+
+        function closeSocialTaskModal() {
+            document.getElementById('social-task-modal').style.display = 'none';
+            currentEditingSocialTaskIndex = null;
+        }
+
+        function selectSocialIcon(iconName) {
+            document.getElementById('social-task-icon').value = iconName;
+        }
+
+        async function saveSocialTask() {
+            const name = document.getElementById('social-task-name').value.trim();
+            const icon = document.getElementById('social-task-icon').value.trim();
+            const link = document.getElementById('social-task-link').value.trim();
+            const reward = parseInt(document.getElementById('social-task-reward').value) || 50;
+            const enabled = document.getElementById('social-task-enabled').checked;
+            
+            if (!name || !link) {
+                showAlert("Please enter both task name and link.");
+                return;
+            }
+            
+            loader.style.display = 'flex';
+            try {
+                const configRef = doc(db, "config", "main");
+                const configSnap = await getDoc(configRef);
+                const config = configSnap.exists() ? configSnap.data() : {};
+                const socialTasks = config.socialTasks || [];
+                
+                const taskData = {
+                    name: name,
+                    icon: icon,
+                    link: link,
+                    reward: reward,
+                    enabled: enabled
+                };
+                
+                if (currentEditingSocialTaskIndex === null) {
+                    // Add new task
+                    socialTasks.push(taskData);
+                } else {
+                    // Update existing task
+                    socialTasks[currentEditingSocialTaskIndex] = taskData;
+                }
+                
+                await updateDoc(configRef, {
+                    socialTasks: socialTasks,
+                    updatedAt: serverTimestamp()
+                });
+                
+                showToast(`✅ Social task ${currentEditingSocialTaskIndex === null ? 'added' : 'updated'} successfully!`);
+                closeSocialTaskModal();
+                await loadSocialTasksData();
+                
+            } catch (error) {
+                console.error("Error saving social task:", error);
+                showAlert("❌ Error saving social task: " + error.message, true);
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
+
+        function deleteSocialTaskConfirm(taskIndex) {
+            showConfirm("Are you sure you want to delete this social task?", async () => {
+                await deleteSocialTask(taskIndex);
+            });
+        }
+
+        async function deleteSocialTask() {
+            if (currentEditingSocialTaskIndex === null) return;
+            
+            loader.style.display = 'flex';
+            try {
+                const configRef = doc(db, "config", "main");
+                const configSnap = await getDoc(configRef);
+                const config = configSnap.exists() ? configSnap.data() : {};
+                const socialTasks = config.socialTasks || [];
+                
+                // Remove the task
+                socialTasks.splice(currentEditingSocialTaskIndex, 1);
+                
+                await updateDoc(configRef, {
+                    socialTasks: socialTasks,
+                    updatedAt: serverTimestamp()
+                });
+                
+                showToast("✅ Social task deleted successfully!");
+                closeSocialTaskModal();
+                await loadSocialTasksData();
+                
+            } catch (error) {
+                console.error("Error deleting social task:", error);
+                showAlert("❌ Error deleting social task: " + error.message, true);
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
+
+        // ===== SLIDER BANNERS MANAGEMENT =====
+        async function loadBanners() {
+            const page = document.getElementById('banners');
+            page.innerHTML = `
+                <div class="flex justify-between items-center mb-6">
+                    <h1 class="text-3xl font-bold">Slider Banners Management</h1>
+                    <button onclick="openBannerEditorModal()" class="btn btn-primary">
+                        <i data-lucide="plus" class="w-4 h-4 mr-2"></i> Add Banner
+                    </button>
+                </div>
+                
+                <div class="bg-white shadow rounded-lg p-6 mb-8">
+                    <h2 class="text-xl font-bold mb-4">Slider Banners Configuration</h2>
+                    <p class="text-gray-600 mb-4">Configure promotional banners that appear in the app's slider.</p>
+                    
+                    <div id="banners-list" class="space-y-6">
+                        Loading...
+                    </div>
+                </div>
+            `;
+            
+            await loadBannersData();
+        }
+
+        async function loadBannersData() {
+            try {
+                const configSnap = await getDoc(doc(db, "config", "main"));
+                const config = configSnap.exists() ? configSnap.data() : {};
+                const sliderBanners = config.sliderBanners || [];
+                
+                const container = document.getElementById('banners-list');
+                
+                if (sliderBanners.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center p-8 bg-gray-50 rounded-lg">
+                            <i data-lucide="image" class="w-12 h-12 mx-auto text-gray-400 mb-4"></i>
+                            <p class="text-gray-500 mb-4">No banners configured yet.</p>
+                            <p class="text-sm text-gray-400 mb-4">Add banners to appear in the app's promotional slider</p>
+                            <button onclick="openBannerEditorModal()" class="btn btn-primary">
+                                <i data-lucide="plus" class="w-4 h-4 mr-2"></i> Add First Banner
+                            </button>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                let html = '<div class="grid grid-cols-1 md:grid-cols-2 gap-6">';
+                
+                sliderBanners.forEach((banner, index) => {
+                    html += `
+                        <div class="border rounded-lg overflow-hidden shadow-sm">
+                            <div class="relative">
+                                <img src="${banner.img}" alt="Banner ${index + 1}" 
+                                     class="w-full h-48 object-cover">
+                                <span class="absolute top-2 right-2 status-badge ${banner.enabled !== false ? 'status-active' : 'status-blocked'}">
+                                    ${banner.enabled !== false ? 'Active' : 'Disabled'}
+                                </span>
+                                <span class="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs">
+                                    Order: ${banner.order || index + 1}
+                                </span>
+                            </div>
+                            <div class="p-4">
+                                <p class="text-sm text-gray-600 mb-2 truncate"><strong>Link:</strong> ${banner.link}</p>
+                                <div class="flex justify-end space-x-2">
+                                    <button onclick="editBanner(${index})" class="btn btn-sm btn-secondary">Edit</button>
+                                    <button onclick="deleteBannerConfirm(${index})" class="btn btn-sm btn-danger">Delete</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+                container.innerHTML = html;
+                
+            } catch (error) {
+                console.error("Error loading banners:", error);
+                document.getElementById('banners-list').innerHTML = 
+                    `<p class="text-center text-red-500">Error loading banners</p>`;
+            }
+        }
+
+        function openBannerEditorModal(bannerIndex = null) {
+            currentEditingBannerIndex = bannerIndex;
+            document.getElementById('banner-editor-modal').style.display = 'flex';
+            
+            // Setup image upload
+            const uploadInput = document.getElementById('banner-image-upload');
+            uploadInput.onchange = function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        document.getElementById('banner-image-url').value = e.target.result;
+                        const preview = document.getElementById('banner-preview');
+                        preview.src = e.target.result;
+                        preview.classList.remove('hidden');
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+            
+            if (bannerIndex === null) {
+                // New banner
+                document.getElementById('banner-image-url').value = '';
+                document.getElementById('banner-link-url').value = '';
+                document.getElementById('banner-order').value = '1';
+                document.getElementById('banner-enabled').checked = true;
+                document.getElementById('banner-preview').classList.add('hidden');
+            } else {
+                // Edit existing banner
+                loadBannerData(bannerIndex);
+            }
+        }
+
+        async function loadBannerData(bannerIndex) {
+            try {
+                const configSnap = await getDoc(doc(db, "config", "main"));
+                const config = configSnap.exists() ? configSnap.data() : {};
+                const sliderBanners = config.sliderBanners || [];
+                
+                if (sliderBanners[bannerIndex]) {
+                    const banner = sliderBanners[bannerIndex];
+                    document.getElementById('banner-image-url').value = banner.img || '';
+                    document.getElementById('banner-link-url').value = banner.link || '';
+                    document.getElementById('banner-order').value = banner.order || bannerIndex + 1;
+                    document.getElementById('banner-enabled').checked = banner.enabled !== false;
+                    
+                    const preview = document.getElementById('banner-preview');
+                    if (banner.img) {
+                        preview.src = banner.img;
+                        preview.classList.remove('hidden');
+                    } else {
+                        preview.classList.add('hidden');
+                    }
+                }
+            } catch (error) {
+                console.error("Error loading banner data:", error);
+            }
+        }
+
+        function closeBannerEditorModal() {
+            document.getElementById('banner-editor-modal').style.display = 'none';
+            currentEditingBannerIndex = null;
+        }
+
+        async function saveBanner() {
+            const img = document.getElementById('banner-image-url').value.trim();
+            const link = document.getElementById('banner-link-url').value.trim();
+            const order = parseInt(document.getElementById('banner-order').value) || 1;
+            const enabled = document.getElementById('banner-enabled').checked;
+            
+            if (!img || !link) {
+                showAlert("Please enter both image URL and link URL.");
+                return;
+            }
+            
+            loader.style.display = 'flex';
+            try {
+                const configRef = doc(db, "config", "main");
+                const configSnap = await getDoc(configRef);
+                const config = configSnap.exists() ? configSnap.data() : {};
+                const sliderBanners = config.sliderBanners || [];
+                
+                const bannerData = {
+                    img: img,
+                    link: link,
+                    order: order,
+                    enabled: enabled
+                };
+                
+                if (currentEditingBannerIndex === null) {
+                    // Add new banner
+                    sliderBanners.push(bannerData);
+                } else {
+                    // Update existing banner
+                    sliderBanners[currentEditingBannerIndex] = bannerData;
+                }
+                
+                // Sort by order
+                sliderBanners.sort((a, b) => (a.order || 999) - (b.order || 999));
+                
+                await updateDoc(configRef, {
+                    sliderBanners: sliderBanners,
+                    updatedAt: serverTimestamp()
+                });
+                
+                showToast(`✅ Banner ${currentEditingBannerIndex === null ? 'added' : 'updated'} successfully!`);
+                closeBannerEditorModal();
+                await loadBannersData();
+                
+            } catch (error) {
+                console.error("Error saving banner:", error);
+                showAlert("❌ Error saving banner: " + error.message, true);
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
+
+        function deleteBannerConfirm(bannerIndex) {
+            showConfirm("Are you sure you want to delete this banner?", async () => {
+                await deleteBanner(bannerIndex);
+            });
+        }
+
+        async function deleteBanner() {
+            if (currentEditingBannerIndex === null) return;
+            
+            loader.style.display = 'flex';
+            try {
+                const configRef = doc(db, "config", "main");
+                const configSnap = await getDoc(configRef);
+                const config = configSnap.exists() ? configSnap.data() : {};
+                const sliderBanners = config.sliderBanners || [];
+                
+                // Remove the banner
+                sliderBanners.splice(currentEditingBannerIndex, 1);
+                
+                await updateDoc(configRef, {
+                    sliderBanners: sliderBanners,
+                    updatedAt: serverTimestamp()
+                });
+                
+                showToast("✅ Banner deleted successfully!");
+                closeBannerEditorModal();
+                await loadBannersData();
+                
+            } catch (error) {
+                console.error("Error deleting banner:", error);
+                showAlert("❌ Error deleting banner: " + error.message, true);
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
+
+        // ===== GAME RESET SYSTEM =====
+        function openGameResetModal() {
+            document.getElementById('game-reset-modal').style.display = 'flex';
+            
+            // Update reset description
+            const resetType = document.getElementById('reset-type-select');
+            const description = document.getElementById('reset-description');
+            
+            resetType.onchange = function() {
+                updateResetDescription();
+            };
+            
+            updateResetDescription();
+        }
+
+        function updateResetDescription() {
+            const gameSelect = document.getElementById('reset-game-select');
+            const resetType = document.getElementById('reset-type-select');
+            const description = document.getElementById('reset-description');
+            
+            const game = gameSelect.value;
+            const type = resetType.value;
+            
+            const gameNames = {
+                'colorGame': 'Color Game',
+                'watchVideo': 'Watch Video',
+                'ludoDice': 'Ludo Dice',
+                'websiteVisit': 'Website Visit',
+                'socialTasks': 'Social Tasks',
+                'all': 'All Games'
+            };
+            
+            const descriptions = {
+                'daily': `Reset daily play limits for ${gameNames[game]}. Users will be able to play again immediately.`,
+                'special': `Reset special task counters for ${gameNames[game]}. Users will see special tasks reset.`,
+                'full': `Full reset for ${gameNames[game]}. This will reset limits, counters, and statistics.`
+            };
+            
+            description.textContent = descriptions[type] || descriptions['daily'];
+        }
+
+        function closeGameResetModal() {
+            document.getElementById('game-reset-modal').style.display = 'none';
+        }
+
+        async function executeGameReset() {
+            const game = document.getElementById('reset-game-select').value;
+            const resetType = document.getElementById('reset-type-select').value;
+            const today = new Date().toISOString().split('T')[0];
+            
+            loader.style.display = 'flex';
+            try {
+                const resetRef = doc(db, "config", "resetFlags");
+                
+                if (game === 'all') {
+                    // Reset all games
+                    const resetData = {
+                        full_reset_date: today,
+                        updatedAt: serverTimestamp()
+                    };
+                    
+                    await setDoc(resetRef, resetData, { merge: true });
+                    showToast("✅ All game limits reset initiated!");
+                } else {
+                    // Reset specific game
+                    const resetData = {
+                        [`${game}_reset_date`]: today,
+                        [`${game}_reset_type`]: resetType,
+                        updatedAt: serverTimestamp()
+                    };
+                    
+                    await setDoc(resetRef, resetData, { merge: true });
+                    
+                    const gameNames = {
+                        'colorGame': 'Color Game',
+                        'watchVideo': 'Watch Video',
+                        'ludoDice': 'Ludo Dice',
+                        'websiteVisit': 'Website Visit',
+                        'socialTasks': 'Social Tasks'
+                    };
+                    
+                    showToast(`✅ ${gameNames[game]} ${resetType} reset initiated!`);
+                }
+                
+                closeGameResetModal();
+                await loadGamesData();
+                await loadGamesStats();
+                
+            } catch (error) {
+                console.error("Error executing game reset:", error);
+                showAlert("❌ Error resetting game: " + error.message, true);
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
+
+        // ===== SYSTEM TOOLS =====
+        async function loadSystemTools() {
+            const page = document.getElementById('system');
+            page.innerHTML = `
+                <h1 class="text-3xl font-bold mb-6">System Tools</h1>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Backup & Restore -->
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <h2 class="text-xl font-bold mb-4">Backup & Restore</h2>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block font-semibold mb-2">Create Backup</label>
+                                <button onclick="createBackup()" class="btn btn-primary w-full">
+                                    <i data-lucide="download" class="w-4 h-4 mr-2"></i> Download Backup
+                                </button>
+                                <p class="text-sm text-gray-500 mt-2">Download complete app configuration as JSON</p>
+                            </div>
+                            
+                            <div>
+                                <label class="block font-semibold mb-2">Restore Backup</label>
+                                <input type="file" id="backup-file" accept=".json" class="input-field mb-2">
+                                <button onclick="restoreBackup()" class="btn btn-warning w-full">
+                                    <i data-lucide="upload" class="w-4 h-4 mr-2"></i> Upload & Restore
+                                </button>
+                                <p class="text-sm text-red-500 mt-2">⚠️ This will overwrite all current settings</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Data Export -->
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <h2 class="text-xl font-bold mb-4">Data Export</h2>
+                        <div class="space-y-3">
+                            <button onclick="exportUserData()" class="btn btn-secondary w-full">
+                                <i data-lucide="users" class="w-4 h-4 mr-2"></i> Export Users Data
+                            </button>
+                            <button onclick="exportWithdrawalData()" class="btn btn-secondary w-full">
+                                <i data-lucide="banknote" class="w-4 h-4 mr-2"></i> Export Withdrawals
+                            </button>
+                            <button onclick="exportPointHistory()" class="btn btn-secondary w-full">
+                                <i data-lucide="history" class="w-4 h-4 mr-2"></i> Export Point History
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- System Reset -->
+                    <div class="bg-white p-6 rounded-lg shadow md:col-span-2">
+                        <h2 class="text-xl font-bold mb-4 text-red-600">⚠️ Dangerous Zone</h2>
+                        <div class="p-4 bg-red-50 border border-red-200 rounded-lg mb-4">
+                            <p class="text-red-700">These actions cannot be undone. Use with extreme caution.</p>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <button onclick="resetAllGameStats()" class="btn btn-warning">
+                                <i data-lucide="refresh-cw" class="w-4 h-4 mr-2"></i> Reset Game Stats
+                            </button>
+                            <button onclick="resetWebsiteVisitHistory()" class="btn btn-warning">
+                                <i data-lucide="globe" class="w-4 h-4 mr-2"></i> Reset Website Visits
+                            </button>
+                            <button onclick="clearAllUserTasks()" class="btn btn-danger">
+                                <i data-lucide="trash-2" class="w-4 h-4 mr-2"></i> Clear All User Tasks
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Version & Logs -->
+                    <div class="bg-white p-6 rounded-lg shadow md:col-span-2">
+                        <h2 class="text-xl font-bold mb-4">System Information</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <p class="text-gray-600">App Version</p>
+                                <p class="font-bold" id="app-version">Loading...</p>
+                            </div>
+                            <div>
+                                <p class="text-gray-600">Total Users</p>
+                                <p class="font-bold" id="sys-total-users">0</p>
+                            </div>
+                            <div>
+                                <p class="text-gray-600">Active Today</p>
+                                <p class="font-bold text-green-600" id="sys-active-today">0</p>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6">
+                            <button onclick="clearErrorLogs()" class="btn btn-secondary">
+                                <i data-lucide="trash" class="w-4 h-4 mr-2"></i> Clear Error Logs
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Load system info
+            await loadSystemInfo();
+        }
+
+        async function loadSystemInfo() {
+            try {
+                // Get version from config
+                const configSnap = await getDoc(doc(db, "config", "main"));
+                if (configSnap.exists()) {
+                    const config = configSnap.data();
+                    document.getElementById('app-version').textContent = config.appVersion || '1.0.0';
+                }
+                
+                // Get total users
+                const usersSnap = await getDocs(collection(db, "users"));
+                document.getElementById('sys-total-users').textContent = usersSnap.size;
+                
+                // Get active today
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const pointSnap = await getDocs(query(
+                    collection(db, "pointHistory"),
+                    where("timestamp", ">=", today)
+                ));
+                
+                const uniqueUserIds = new Set();
+                pointSnap.forEach(doc => {
+                    const data = doc.data();
+                    if (data.userId) uniqueUserIds.add(data.userId);
+                });
+                
+                document.getElementById('sys-active-today').textContent = uniqueUserIds.size;
+                
+            } catch (error) {
+                console.error("Error loading system info:", error);
+            }
+        }
+
+        async function createBackup() {
+            loader.style.display = 'flex';
+            try {
+                // Get all config data
+                const configSnap = await getDoc(doc(db, "config", "main"));
+                const gamesSnap = await getDoc(doc(db, "config", "games"));
+                const noticeSnap = await getDoc(doc(db, "config", "appNotice"));
+                const resetSnap = await getDoc(doc(db, "config", "resetFlags"));
+                
+                const backupData = {
+                    config: configSnap.exists() ? configSnap.data() : {},
+                    games: gamesSnap.exists() ? gamesSnap.data() : {},
+                    notice: noticeSnap.exists() ? noticeSnap.data() : {},
+                    resetFlags: resetSnap.exists() ? resetSnap.data() : {},
+                    backupDate: new Date().toISOString(),
+                    version: '1.0'
+                };
+                
+                // Convert to JSON
+                const jsonString = JSON.stringify(backupData, null, 2);
+                
+                // Create download link
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `cashreward-backup-${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                showToast("✅ Backup created successfully!");
+                
+            } catch (error) {
+                console.error("Error creating backup:", error);
+                showAlert("❌ Error creating backup: " + error.message, true);
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
+
+        async function restoreBackup() {
+            const fileInput = document.getElementById('backup-file');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                showAlert("Please select a backup file.");
+                return;
+            }
+            
+            showConfirm("⚠️ This will overwrite ALL current settings. Continue?", async () => {
+                loader.style.display = 'flex';
+                try {
+                    const text = await file.text();
+                    const backupData = JSON.parse(text);
+                    
+                    // Validate backup format
+                    if (!backupData.config || !backupData.version) {
+                        throw new Error("Invalid backup file format");
+                    }
+                    
+                    // Restore all configs
+                    await setDoc(doc(db, "config", "main"), backupData.config);
+                    if (backupData.games) {
+                        await setDoc(doc(db, "config", "games"), backupData.games);
+                    }
+                    if (backupData.notice) {
+                        await setDoc(doc(db, "config", "appNotice"), backupData.notice);
+                    }
+                    if (backupData.resetFlags) {
+                        await setDoc(doc(db, "config", "resetFlags"), backupData.resetFlags);
+                    }
+                    
+                    showToast("✅ Backup restored successfully!");
+                    fileInput.value = '';
+                    
+                    // Reload all pages
+                    await loadSettings();
+                    await loadGamesData();
+                    await loadActiveNotice();
+                    
+                } catch (error) {
+                    console.error("Error restoring backup:", error);
+                    showAlert("❌ Error restoring backup: " + error.message, true);
+                } finally {
+                    loader.style.display = 'none';
+                }
+            });
+        }
+
+        async function exportUserData() {
+            loader.style.display = 'flex';
+            try {
+                const usersSnap = await getDocs(collection(db, "users"));
+                const users = [];
+                
+                usersSnap.forEach(doc => {
+                    const user = doc.data();
+                    users.push({
+                        id: doc.id,
+                        name: user.name || '',
+                        email: user.email || '',
+                        balance: user.balance || 0,
+                        country: user.country || '',
+                        userType: user.userType || '',
+                        createdAt: user.createdAt || '',
+                        lastLogin: user.lastLogin || '',
+                        dailyAdCount: user.dailyAdCount || 0,
+                        totalEarned: user.totalEarned || 0
+                    });
+                });
+                
+                const csv = convertToCSV(users);
+                downloadCSV(csv, 'users-export.csv');
+                showToast("✅ User data exported successfully!");
+                
+            } catch (error) {
+                console.error("Error exporting user data:", error);
+                showAlert("❌ Error exporting data: " + error.message, true);
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
+
+        async function exportWithdrawalData() {
+            loader.style.display = 'flex';
+            try {
+                const withdrawalsSnap = await getDocs(collection(db, "withdrawals"));
+                const withdrawals = [];
+                
+                withdrawalsSnap.forEach(doc => {
+                    const req = doc.data();
+                    withdrawals.push({
+                        id: doc.id,
+                        userName: req.userName || '',
+                        amount: req.amount || 0,
+                        method: req.method || '',
+                        status: req.status || '',
+                        requestedAt: req.requestedAt?.toDate().toISOString() || '',
+                        processedAt: req.processedAt?.toDate().toISOString() || '',
+                        paymentDetail: req.paymentDetail || '',
+                        country: req.country || ''
+                    });
+                });
+                
+                const csv = convertToCSV(withdrawals);
+                downloadCSV(csv, 'withdrawals-export.csv');
+                showToast("✅ Withdrawal data exported successfully!");
+                
+            } catch (error) {
+                console.error("Error exporting withdrawal data:", error);
+                showAlert("❌ Error exporting data: " + error.message, true);
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
+
+        async function exportPointHistory() {
+            loader.style.display = 'flex';
+            try {
+                const pointSnap = await getDocs(collection(db, "pointHistory"));
+                const points = [];
+                
+                pointSnap.forEach(doc => {
+                    const point = doc.data();
+                    points.push({
+                        id: doc.id,
+                        userId: point.userId || '',
+                        userName: point.userName || '',
+                        taskType: point.taskType || '',
+                        points: point.points || 0,
+                        details: point.details || '',
+                        timestamp: point.timestamp?.toDate().toISOString() || '',
+                        country: point.country || ''
+                    });
+                });
+                
+                const csv = convertToCSV(points);
+                downloadCSV(csv, 'point-history-export.csv');
+                showToast("✅ Point history exported successfully!");
+                
+            } catch (error) {
+                console.error("Error exporting point history:", error);
+                showAlert("❌ Error exporting data: " + error.message, true);
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
+
+        function convertToCSV(data) {
+            if (data.length === 0) return '';
+            
+            const headers = Object.keys(data[0]);
+            const rows = data.map(row => 
+                headers.map(header => {
+                    const value = row[header];
+                    if (typeof value === 'string' && value.includes(',')) {
+                        return `"${value}"`;
+                    }
+                    return value;
+                }).join(',')
+            );
+            
+            return [headers.join(','), ...rows].join('\n');
+        }
+
+        function downloadCSV(csv, filename) {
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        async function resetAllGameStats() {
+            showConfirm("Reset ALL game statistics? This cannot be undone.", async () => {
+                loader.style.display = 'flex';
+                try {
+                    const gameRef = doc(db, "config", "games");
+                    const gameSnap = await getDoc(gameRef);
+                    const currentData = gameSnap.exists() ? gameSnap.data() : {};
+                    
+                    // Keep game configurations but reset stats
+                    const updateData = {
+                        ...currentData,
+                        dailyStats: {},
+                        allTimeStats: {},
+                        updatedAt: serverTimestamp()
+                    };
+                    
+                    await setDoc(gameRef, updateData);
+                    
+                    showToast("✅ All game statistics reset!");
+                    await loadGamesStats();
+                    
+                } catch (error) {
+                    console.error("Error resetting game stats:", error);
+                    showAlert("❌ Error resetting statistics", true);
+                } finally {
+                    loader.style.display = 'none';
+                }
+            });
+        }
+
+        async function clearAllUserTasks() {
+            showConfirm("Clear ALL user task counters (ads, website visits, social tasks)? This cannot be undone.", async () => {
+                loader.style.display = 'flex';
+                try {
+                    const usersSnap = await getDocs(collection(db, "users"));
+                    const batch = writeBatch(db);
+                    
+                    usersSnap.forEach((userDoc) => {
+                        const userRef = doc(db, "users", userDoc.id);
+                        batch.update(userRef, {
+                            dailyAdCount: 0,
+                            visitedSitesToday: [],
+                            completedSocialTasks: [],
+                            lastAdWatchDate: new Date().toISOString().split('T')[0],
+                            lastSiteVisitDate: new Date().toISOString().split('T')[0]
+                        });
+                    });
+                    
+                    await batch.commit();
+                    showToast("✅ All user tasks cleared!");
+                    
+                } catch (error) {
+                    console.error("Error clearing user tasks:", error);
+                    showAlert("❌ Error clearing tasks", true);
+                } finally {
+                    loader.style.display = 'none';
+                }
+            });
+        }
+
+        function clearErrorLogs() {
+            // In a real implementation, you would clear error logs from Firestore
+            showToast("✅ Error logs cleared!");
+        }
+
+        // Keep the existing loadGamesStats, loadUsers, loadWithdrawals, loadSettings functions
+        // (These functions remain largely the same but integrated with new features)
+
+        async function loadGamesStats() {
+            try {
+                const gamesSnap = await getDoc(doc(db, "config", "games"));
+                const gamesConfig = gamesSnap.exists() ? gamesSnap.data() : {};
+                
+                // Get today's stats
+                const today = new Date().toISOString().split('T')[0];
+                const todayStats = gamesConfig.dailyStats?.[today] || {};
+                
+                // Get all time stats
+                const allTimeStats = gamesConfig.allTimeStats || {};
+                
+                let html = `<table class="w-full text-sm text-left text-gray-600">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3">Game</th>
+                            <th class="px-6 py-3">Today's Plays</th>
+                            <th class="px-6 py-3">Today's Users</th>
+                            <th class="px-6 py-3">Today's Points</th>
+                            <th class="px-6 py-3">Total Plays</th>
+                            <th class="px-6 py-3">Total Users</th>
+                            <th class="px-6 py-3">Total Points</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+                
+                const games = [
+                    { id: 'colorGame', name: 'Color Game' },
+                    { id: 'watchVideo', name: 'Watch Video' },
+                    { id: 'ludoDice', name: 'Ludo Dice' }
+                ];
+                
+                let todayTotalPlays = 0;
+                let todayTotalUsers = 0;
+                let todayTotalPoints = 0;
+                let allTimeTotalPlays = 0;
+                let allTimeTotalUsers = 0;
+                let allTimeTotalPoints = 0;
+                
+                games.forEach(game => {
+                    const todayGameStats = todayStats[game.id] || { playCount: 0, userCount: 0 };
+                    const allTimeGameStats = allTimeStats[game.id] || { playCount: 0, userCount: 0 };
+                    const gameConfig = gamesConfig[game.id] || {};
+                    const rewardPerPlay = gameConfig.rewardPerPlay || 0;
+                    
+                    const todayPoints = todayGameStats.playCount * rewardPerPlay;
+                    const allTimePoints = allTimeGameStats.playCount * rewardPerPlay;
+                    
+                    todayTotalPlays += todayGameStats.playCount;
+                    todayTotalUsers += todayGameStats.userCount;
+                    todayTotalPoints += todayPoints;
+                    allTimeTotalPlays += allTimeGameStats.playCount;
+                    allTimeTotalUsers += allTimeGameStats.userCount;
+                    allTimeTotalPoints += allTimePoints;
+                    
+                    html += `<tr class="bg-white border-b">
+                        <td class="px-6 py-4 font-semibold">${game.name}</td>
+                        <td class="px-6 py-4">${todayGameStats.playCount}</td>
+                        <td class="px-6 py-4">${todayGameStats.userCount}</td>
+                        <td class="px-6 py-4">${todayPoints}</td>
+                        <td class="px-6 py-4">${allTimeGameStats.playCount}</td>
+                        <td class="px-6 py-4">${allTimeGameStats.userCount}</td>
+                        <td class="px-6 py-4">${allTimePoints}</td>
+                    </tr>`;
+                });
+                
+                // Add totals row
+                html += `<tr class="bg-gray-50 font-bold">
+                    <td class="px-6 py-4">TOTAL</td>
+                    <td class="px-6 py-4">${todayTotalPlays}</td>
+                    <td class="px-6 py-4">${todayTotalUsers}</td>
+                    <td class="px-6 py-4">${todayTotalPoints}</td>
+                    <td class="px-6 py-4">${allTimeTotalPlays}</td>
+                    <td class="px-6 py-4">${allTimeTotalUsers}</td>
+                    <td class="px-6 py-4">${allTimeTotalPoints}</td>
+                </tr>`;
+                
+                html += `</tbody></table>`;
+                document.getElementById('games-stats-table').innerHTML = html;
+            } catch (error) {
+                console.error("Error loading game stats:", error);
+                document.getElementById('games-stats-table').innerHTML = 
+                    `<p class="text-center text-gray-500">Error loading game statistics</p>`;
+            }
+        }
+
+        // Make all functions globally available
+        window.toggleUserBlock = toggleUserBlock;
+        window.processWithdrawal = processWithdrawal;
+        window.openEditPointsModal = openEditPointsModal;
+        window.closeEditPointsModal = closeEditPointsModal;
+        window.saveUserPoints = saveUserPoints;
+        window.resetDailyAds = resetDailyAds;
+        window.searchUsers = searchUsers;
+        window.filterWithdrawals = filterWithdrawals;
+        window.viewUserPointHistory = viewUserPointHistory;
+        window.closePointHistoryModal = closePointHistoryModal;
+        
+        // Game Management functions
+        window.openQuickSettings = openQuickSettings;
+        window.closeQuickSettingsModal = closeQuickSettingsModal;
+        window.saveQuickGameSettings = saveQuickGameSettings;
+        window.applyGlobalPlayLimit = applyGlobalPlayLimit;
+        window.applyGlobalReward = applyGlobalReward;
+        window.showAllGames = showAllGames;
+        window.hideAllGames = hideAllGames;
+        window.syncAllGameSettings = syncAllGameSettings;
+        window.resetIndividualGame = resetIndividualGame;
+        window.openGameResetModal = openGameResetModal;
+        window.closeGameResetModal = closeGameResetModal;
+        window.executeGameReset = executeGameReset;
+        
+        // App Notice functions
+        window.openAppNoticeModal = openAppNoticeModal;
+        window.closeAppNoticeModal = closeAppNoticeModal;
+        window.saveAppNotice = saveAppNotice;
+        window.createNewNotice = createNewNotice;
+        window.disableAppNotice = disableAppNotice;
+        window.editAppNotice = editAppNotice;
+        
+        // Social Tasks functions
+        window.openSocialTaskModal = openSocialTaskModal;
+        window.closeSocialTaskModal = closeSocialTaskModal;
+        window.saveSocialTask = saveSocialTask;
+        window.deleteSocialTask = deleteSocialTask;
+        window.deleteSocialTaskConfirm = deleteSocialTaskConfirm;
+        window.selectSocialIcon = selectSocialIcon;
+        window.editSocialTask = openSocialTaskModal;
+        
+        // Banner functions
+        window.openBannerEditorModal = openBannerEditorModal;
+        window.closeBannerEditorModal = closeBannerEditorModal;
+        window.saveBanner = saveBanner;
+        window.deleteBanner = deleteBanner;
+        window.deleteBannerConfirm = deleteBannerConfirm;
+        window.editBanner = openBannerEditorModal;
+        
+        // System Tools functions
+        window.createBackup = createBackup;
+        window.restoreBackup = restoreBackup;
+        window.exportUserData = exportUserData;
+        window.exportWithdrawalData = exportWithdrawalData;
+        window.exportPointHistory = exportPointHistory;
+        window.resetAllGameStats = resetAllGameStats;
+        window.resetWebsiteVisitHistory = resetWebsiteVisitHistory;
+        window.clearAllUserTasks = clearAllUserTasks;
+        window.clearErrorLogs = clearErrorLogs;
+
+        // Initialize icons
+        lucide.createIcons();
+    </script>
+</body>
+</html>

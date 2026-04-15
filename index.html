@@ -82,6 +82,52 @@
                 </div>
             </div>
 
+            <!-- View Statistics Dashboard -->
+            <div class="bg-white p-6 rounded-lg shadow-md mb-8">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4 border-b pb-2">
+                    <i class="fas fa-chart-bar mr-2 text-blue-600"></i>View Statistics
+                </h2>
+                
+                <!-- Most Viewed Items -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Most Viewed Files -->
+                    <div class="bg-gray-50 p-4 rounded-lg border">
+                        <h3 class="text-lg font-semibold text-gray-700 mb-3">
+                            <i class="fas fa-file mr-2 text-blue-500"></i>Most Viewed Files
+                        </h3>
+                        <div id="most-viewed-files" class="space-y-2">
+                            <p class="text-gray-500 text-center">Loading...</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Most Viewed Sliders/Links -->
+                    <div class="bg-gray-50 p-4 rounded-lg border">
+                        <h3 class="text-lg font-semibold text-gray-700 mb-3">
+                            <i class="fas fa-link mr-2 text-green-500"></i>Most Viewed Links
+                        </h3>
+                        <div id="most-viewed-sliders" class="space-y-2">
+                            <p class="text-gray-500 text-center">Loading...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Total Views Summary -->
+                <div class="mt-4 grid grid-cols-2 gap-4">
+                    <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                        <p class="text-sm text-blue-600 font-medium">Total File Views</p>
+                        <p id="total-file-views" class="text-2xl font-bold text-blue-700">0</p>
+                    </div>
+                    <div class="bg-green-50 p-4 rounded-lg border border-green-200">
+                        <p class="text-sm text-green-600 font-medium">Total Link Views</p>
+                        <p id="total-link-views" class="text-2xl font-bold text-green-700">0</p>
+                    </div>
+                </div>
+                
+                <button id="reset-stats-btn" class="mt-4 bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 font-semibold flex items-center justify-center gap-2">
+                    <i class="fas fa-sync-alt"></i> Reset All Statistics
+                </button>
+            </div>
+
             <!-- File Management -->
             <div class="bg-white p-6 rounded-lg shadow-md">
                 <h2 class="text-2xl font-semibold text-gray-800 mb-4 border-b pb-2">Manage Files</h2>
@@ -135,7 +181,7 @@
     <!-- Firebase and App Logic -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, doc, deleteDoc, serverTimestamp, query, orderBy, setDoc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, doc, deleteDoc, serverTimestamp, query, orderBy, setDoc, getDoc, updateDoc, increment, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
         const firebaseConfig = {
@@ -172,6 +218,7 @@
                 adminContent.classList.remove('hidden');
                 signOutBtn.classList.remove('hidden');
                 loadAdminData();
+                loadViewStatistics();
             } else {
                 adminLogin.classList.remove('hidden');
                 adminContent.classList.add('hidden');
@@ -292,7 +339,12 @@
             const linkUrl = document.getElementById('slider-link-url').value;
             
             handleAsyncButton(e.currentTarget, async () => {
-                await addDoc(collection(db, "sliders"), { imageUrl, linkUrl: linkUrl || "", createdAt: serverTimestamp() });
+                await addDoc(collection(db, "sliders"), { 
+                    imageUrl, 
+                    linkUrl: linkUrl || "", 
+                    createdAt: serverTimestamp(),
+                    views: 0
+                });
                 showToast("Slider add ho gaya!", 'success');
                 document.getElementById('slider-image-url').value = '';
                 document.getElementById('slider-link-url').value = '';
@@ -312,6 +364,9 @@
                 sliderEl.innerHTML = `
                     <img src="${slider.imageUrl}" class="w-full h-24 object-cover rounded-md border">
                     <p class="text-xs truncate text-center p-1">${slider.linkUrl || 'No link'}</p>
+                    <p class="text-xs text-center text-gray-600">
+                        <i class="fas fa-eye mr-1"></i>${slider.views || 0} views
+                    </p>
                     <button data-id="${doc.id}" class="delete-slider-btn absolute top-1 right-1 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100">&times;</button>
                 `;
                 sliderList.appendChild(sliderEl);
@@ -324,6 +379,7 @@
                     await deleteDoc(doc(db, "sliders", e.target.dataset.id));
                     showToast("Slider delete ho gaya.", 'success');
                     loadAdminSliders();
+                    loadViewStatistics();
                 }
             }
         });
@@ -346,7 +402,8 @@
                     description, 
                     downloadUrl, 
                     requiredAds, 
-                    createdAt: serverTimestamp() 
+                    createdAt: serverTimestamp(),
+                    views: 0
                 });
                 showToast("File add ho gayi!", 'success');
                 ['file-title', 'file-thumbnail-url', 'file-description', 'file-download-url'].forEach(id => document.getElementById(id).value = '');
@@ -369,6 +426,9 @@
                     <h3 class="font-bold text-md">${file.title}</h3>
                     <p class="text-sm text-gray-600 truncate my-1">${file.description}</p>
                     <p class="text-sm font-semibold text-blue-600 mt-2">Required Ads: ${file.requiredAds || 5}</p>
+                    <p class="text-sm text-gray-600 mt-1">
+                        <i class="fas fa-eye mr-1 text-green-600"></i>${file.views || 0} views
+                    </p>
                     <div class="flex gap-2 mt-2">
                          <button data-id="${doc.id}" class="edit-file-btn w-full bg-yellow-500 text-white py-1 rounded-md hover:bg-yellow-600 font-semibold flex items-center justify-center gap-2">
                             <i class="fas fa-edit"></i> Edit
@@ -380,6 +440,9 @@
                 `;
                 fileList.appendChild(fileEl);
             });
+            
+            // Update statistics after loading files
+            loadViewStatistics();
         }
         
         fileList.addEventListener('click', async (e) => {
@@ -391,6 +454,7 @@
                     await deleteDoc(doc(db, "files", deleteBtn.dataset.id));
                     showToast("File delete ho gayi.", 'success');
                     loadAdminFiles();
+                    loadViewStatistics();
                 }
             } else if (editBtn) {
                 const fileId = editBtn.dataset.id;
@@ -446,6 +510,212 @@
                 editModal.classList.add('hidden');
             }
         });
+
+        // --- View Statistics Functions ---
+        
+        // Function to track file view (to be called from frontend)
+        window.trackFileView = async function(fileId) {
+            try {
+                const fileRef = doc(db, "files", fileId);
+                await updateDoc(fileRef, {
+                    views: increment(1)
+                });
+                console.log(`File ${fileId} view tracked`);
+            } catch (error) {
+                console.error("Error tracking file view:", error);
+            }
+        };
+        
+        // Function to track slider/link view (to be called from frontend)
+        window.trackSliderView = async function(sliderId) {
+            try {
+                const sliderRef = doc(db, "sliders", sliderId);
+                await updateDoc(sliderRef, {
+                    views: increment(1)
+                });
+                console.log(`Slider ${sliderId} view tracked`);
+            } catch (error) {
+                console.error("Error tracking slider view:", error);
+            }
+        };
+        
+        // Load and display view statistics
+        async function loadViewStatistics() {
+            await loadMostViewedFiles();
+            await loadMostViewedSliders();
+            await loadTotalViews();
+        }
+        
+        async function loadMostViewedFiles() {
+            const container = document.getElementById('most-viewed-files');
+            try {
+                const q = query(collection(db, "files"), orderBy("views", "desc"));
+                const querySnapshot = await getDocs(q);
+                
+                container.innerHTML = '';
+                let count = 0;
+                
+                querySnapshot.forEach((doc) => {
+                    const file = doc.data();
+                    if (count < 5 && file.views > 0) {
+                        const itemEl = document.createElement('div');
+                        itemEl.className = 'flex justify-between items-center p-2 bg-white rounded border';
+                        itemEl.innerHTML = `
+                            <div class="flex items-center gap-2">
+                                <span class="font-medium text-gray-700">${count + 1}.</span>
+                                <span class="text-sm truncate max-w-[150px]">${file.title}</span>
+                            </div>
+                            <span class="font-semibold text-blue-600">
+                                <i class="fas fa-eye mr-1"></i>${file.views}
+                            </span>
+                        `;
+                        container.appendChild(itemEl);
+                        count++;
+                    }
+                });
+                
+                if (count === 0) {
+                    container.innerHTML = '<p class="text-gray-500 text-center">No views yet</p>';
+                }
+            } catch (error) {
+                console.error("Error loading most viewed files:", error);
+                container.innerHTML = '<p class="text-red-500 text-center">Error loading data</p>';
+            }
+        }
+        
+        async function loadMostViewedSliders() {
+            const container = document.getElementById('most-viewed-sliders');
+            try {
+                const q = query(collection(db, "sliders"), orderBy("views", "desc"));
+                const querySnapshot = await getDocs(q);
+                
+                container.innerHTML = '';
+                let count = 0;
+                
+                querySnapshot.forEach((doc) => {
+                    const slider = doc.data();
+                    if (count < 5 && slider.views > 0) {
+                        const itemEl = document.createElement('div');
+                        itemEl.className = 'flex justify-between items-center p-2 bg-white rounded border';
+                        
+                        // Truncate link URL for display
+                        const displayText = slider.linkUrl ? 
+                            (slider.linkUrl.length > 30 ? slider.linkUrl.substring(0, 30) + '...' : slider.linkUrl) : 
+                            'Image only';
+                        
+                        itemEl.innerHTML = `
+                            <div class="flex items-center gap-2">
+                                <span class="font-medium text-gray-700">${count + 1}.</span>
+                                <span class="text-sm truncate max-w-[150px]">${displayText}</span>
+                            </div>
+                            <span class="font-semibold text-green-600">
+                                <i class="fas fa-eye mr-1"></i>${slider.views}
+                            </span>
+                        `;
+                        container.appendChild(itemEl);
+                        count++;
+                    }
+                });
+                
+                if (count === 0) {
+                    container.innerHTML = '<p class="text-gray-500 text-center">No views yet</p>';
+                }
+            } catch (error) {
+                console.error("Error loading most viewed sliders:", error);
+                container.innerHTML = '<p class="text-red-500 text-center">Error loading data</p>';
+            }
+        }
+        
+        async function loadTotalViews() {
+            try {
+                // Get total file views
+                const filesSnapshot = await getDocs(collection(db, "files"));
+                let totalFileViews = 0;
+                filesSnapshot.forEach((doc) => {
+                    totalFileViews += doc.data().views || 0;
+                });
+                
+                // Get total slider views
+                const slidersSnapshot = await getDocs(collection(db, "sliders"));
+                let totalSliderViews = 0;
+                slidersSnapshot.forEach((doc) => {
+                    totalSliderViews += doc.data().views || 0;
+                });
+                
+                document.getElementById('total-file-views').textContent = totalFileViews;
+                document.getElementById('total-link-views').textContent = totalSliderViews;
+            } catch (error) {
+                console.error("Error loading total views:", error);
+            }
+        }
+        
+        // Reset all statistics
+        document.getElementById('reset-stats-btn').addEventListener('click', async (e) => {
+            if (!confirm("Kya aap sabhi view statistics reset karna chahte hain? Ye action undo nahi ho sakta.")) {
+                return;
+            }
+            
+            const button = e.currentTarget;
+            const originalHtml = button.innerHTML;
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Resetting...';
+            
+            try {
+                const batch = writeBatch(db);
+                
+                // Reset file views
+                const filesSnapshot = await getDocs(collection(db, "files"));
+                filesSnapshot.forEach((doc) => {
+                    batch.update(doc.ref, { views: 0 });
+                });
+                
+                // Reset slider views
+                const slidersSnapshot = await getDocs(collection(db, "sliders"));
+                slidersSnapshot.forEach((doc) => {
+                    batch.update(doc.ref, { views: 0 });
+                });
+                
+                await batch.commit();
+                
+                showToast("Sabhi statistics reset ho gaye!", 'success');
+                
+                // Refresh displays
+                await loadAdminFiles();
+                await loadAdminSliders();
+                await loadViewStatistics();
+            } catch (error) {
+                console.error("Error resetting statistics:", error);
+                showToast("Error resetting statistics", 'error');
+            } finally {
+                button.disabled = false;
+                button.innerHTML = originalHtml;
+            }
+        });
+
+        // Export tracking functions to global scope for frontend use
+        window.trackFileView = async function(fileId) {
+            try {
+                const fileRef = doc(db, "files", fileId);
+                await updateDoc(fileRef, {
+                    views: increment(1)
+                });
+                console.log(`File ${fileId} view tracked`);
+            } catch (error) {
+                console.error("Error tracking file view:", error);
+            }
+        };
+        
+        window.trackSliderView = async function(sliderId) {
+            try {
+                const sliderRef = doc(db, "sliders", sliderId);
+                await updateDoc(sliderRef, {
+                    views: increment(1)
+                });
+                console.log(`Slider ${sliderId} view tracked`);
+            } catch (error) {
+                console.error("Error tracking slider view:", error);
+            }
+        };
 
     </script>
 </body>
